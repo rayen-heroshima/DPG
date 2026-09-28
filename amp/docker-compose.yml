@@ -1,0 +1,86 @@
+# Aid Management Platform — local stack.
+#
+#   docker compose up -d --build
+#   docker compose logs -f amp
+#
+# The webapp is at http://localhost:8080/ once the healthcheck goes healthy.
+# A freshly built stack has an empty schema; restore a country dump into it
+# with scripts/restore.sh (see DOCKER.md).
+
+services:
+  db:
+    image: postgis/postgis:14-3.4
+    environment:
+      # The official entrypoint creates this role as a superuser and this
+      # database, which is exactly what AMP's dev-setup docs ask for.
+      POSTGRES_USER: ${AMP_DB_USER:-amp}
+      POSTGRES_PASSWORD: ${AMP_DB_PASSWORD:-amp122006}
+      POSTGRES_DB: ${AMP_DB_NAME:-amp}
+      # AMP stores text in a lot of scripts; keep the cluster on UTF-8.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    ports:
+      # Exposed so psql/pg_restore on the host can reach it. Drop this
+      # mapping if you only ever talk to the database from the amp container.
+      - "${AMP_DB_PUBLISHED_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AMP_DB_USER:-amp} -d ${AMP_DB_NAME:-amp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    shm_size: 256mb
+    restart: unless-stopped
+
+  amp:
+    build:
+      context: ./amp
+      args:
+        # Baked into META-INF/context.xml; the entrypoint overrides them at
+        # startup from the AMP_DB_* environment below.
+        JDBC_HOST: db
+        JDBC_PORT: "5432"
+        JDBC_DB: ${AMP_DB_NAME:-amp}
+        JDBC_USER: ${AMP_DB_USER:-amp}
+        JDBC_PASSWORD: ${AMP_DB_PASSWORD:-amp122006}
+        SERVER_NAME: ${AMP_SERVER_NAME:-localhost}
+        # The full test suite needs a populated database, so it is off by
+        # default for local builds. Set to false in CI.
+        SKIP_TESTS: ${AMP_SKIP_TESTS:-true}
+        BUILD_SOURCE: ${AMP_BUILD_SOURCE:-local}
+    environment:
+      AMP_DB_HOST: db
+      AMP_DB_PORT: "5432"
+      AMP_DB_NAME: ${AMP_DB_NAME:-amp}
+      AMP_DB_USER: ${AMP_DB_USER:-amp}
+      AMP_DB_PASSWORD: ${AMP_DB_PASSWORD:-amp122006}
+      # Must match dg_site_domain in the database, or AMP will not serve the site.
+      AMP_SERVER_NAME: ${AMP_SERVER_NAME:-localhost}
+      AMP_MAX_HEAP: ${AMP_MAX_HEAP:-4g}
+      AMP_SMTP_HOST: ${AMP_SMTP_HOST:-ampdevde.aws.devgateway.org}
+      AMP_SMTP_FROM: ${AMP_SMTP_FROM:-noreply@developmentgateway.org}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${AMP_PUBLISHED_PORT:-8080}:8080"
+    volumes:
+      # Jackrabbit's lucene index and AMP's own indexes are rebuilt from the
+      # database, but keeping them makes restarts far quicker.
+      - jackrabbit:/usr/local/tomcat/webapps/ROOT/jackrabbit
+      - lucene:/usr/local/tomcat/webapps/ROOT/lucene
+      - heapdumps:/opt/heapdumps
+      # GeoNames country extract (install guide: "rename <ISO>.txt to
+      # gazeteer.csv in /doc"). AMP imports it into amp_locator at startup,
+      # only while that table is empty. Tunisia: TN.txt from
+      # https://download.geonames.org/export/dump/TN.zip
+      - ./TN/TN.txt:/usr/local/tomcat/webapps/ROOT/doc/gazeteer.csv:ro
+    restart: unless-stopped
+
+volumes:
+  db-data:
+  jackrabbit:
+  lucene:
+  heapdumps:

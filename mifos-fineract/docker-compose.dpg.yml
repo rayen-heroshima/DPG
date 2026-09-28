@@ -1,0 +1,50 @@
+# Local DPG setup: Apache Fineract (Mifos X core banking) + Mifos X web app.
+# Uses prebuilt images from Docker Hub instead of building from source.
+name: mifos-x
+services:
+  db:
+    image: postgres:18.3
+    restart: unless-stopped
+    volumes:
+      - ./config/docker/postgresql/docker-entrypoint-initdb.d/01-init.sh:/docker-entrypoint-initdb.d/01-init.sh:ro
+      - fineract-db:/var/lib/postgresql
+    env_file:
+      - ./config/docker/env/postgresql.env
+    healthcheck:
+      test: ["CMD", "pg_isready", "-q", "-d", "postgres", "-U", "root"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  fineract:
+    image: apache/fineract:latest
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./config/docker/env/fineract.env
+      - ./config/docker/env/fineract-common.env
+      - ./config/docker/env/fineract-postgresql.env
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xmx1G -XX:+UseContainerSupport --add-exports=java.naming/com.sun.jndi.ldap=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.security=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.management/javax.management=ALL-UNNAMED --add-opens=java.naming/javax.naming=ALL-UNNAMED"
+    tmpfs:
+      - /tmp:rw,nosuid,size=256m
+
+  web-app:
+    image: openmf/web-app:master
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    environment:
+      - FINERACT_API_URLS=https://localhost:8443
+      - FINERACT_API_URL=https://localhost:8443
+      - FINERACT_API_PROVIDER=/fineract-provider/api
+      - FINERACT_API_VERSION=/v1
+      - FINERACT_PLATFORM_TENANT_IDENTIFIER=default
+      - MIFOS_DEFAULT_LANGUAGE=en-US
+
+volumes:
+  fineract-db:

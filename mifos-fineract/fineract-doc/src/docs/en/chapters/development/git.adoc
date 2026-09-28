@@ -1,0 +1,3 @@
+= Git
+
+Version 2.23 or later (supporting `git switch` and `git restore`).

@@ -1,0 +1,10 @@
+= SDKMAN
+
+We recommend using SDKMAN to manage the following developer tools:
+
+- JDK
+- Spring Boot CLI
+- Gradle (if you need a global installation)
+- AsciidoctorJ
+
+TBD

@@ -1,7 +1,7 @@
 # Each project keeps its own .gitignore; this file only covers the monorepo level.
 
 # Upstream git histories, kept locally (renamed from .git when the projects were flattened)
-.git-upstream/
+.git-upstream
 
 # Secrets — commit .env.example instead
 .env

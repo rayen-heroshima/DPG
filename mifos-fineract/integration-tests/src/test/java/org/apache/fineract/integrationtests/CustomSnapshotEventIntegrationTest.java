@@ -1,0 +1,323 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements. See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership. The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.fineract.integrationtests;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.fineract.client.models.PostLoanProductsRequest;
+import org.apache.fineract.infrastructure.event.external.data.ExternalEventResponse;
+import org.apache.fineract.integrationtests.client.feign.FeignLoanTestBase;
+import org.apache.fineract.integrationtests.client.feign.helpers.FeignBusinessStepHelper;
+import org.apache.fineract.integrationtests.client.feign.modules.LoanTestData;
+import org.apache.fineract.integrationtests.common.FineractFeignClientHelper;
+import org.apache.fineract.integrationtests.common.externalevents.ExternalEventsExtension;
+import org.apache.fineract.integrationtests.common.loans.LoanTestLifecycleExtension;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+@Slf4j
+@ExtendWith({ LoanTestLifecycleExtension.class, ExternalEventsExtension.class })
+@Order(1)
+public class CustomSnapshotEventIntegrationTest extends FeignLoanTestBase {
+
+    private static final String LOAN_COB_JOB = "LOAN_CLOSE_OF_BUSINESS";
+    private static final String LOAN_ACCOUNT_CUSTOM_SNAPSHOT_EVENT = "LoanAccountCustomSnapshotBusinessEvent";
+
+    private final FeignBusinessStepHelper businessStepHelper = new FeignBusinessStepHelper(
+            FineractFeignClientHelper.getFineractFeignClient());
+
+    @Test
+    public void testSnapshotEventGenerationWhenLoanInstallmentIsNotPayed() {
+        runAt("31 January 2023", () -> {
+            // Enable Business Step
+            enableCOBBusinessStep("APPLY_CHARGE_TO_OVERDUE_LOANS", "LOAN_DELINQUENCY_CLASSIFICATION", "CHECK_LOAN_REPAYMENT_DUE",
+                    "CHECK_LOAN_REPAYMENT_OVERDUE", "UPDATE_LOAN_ARREARS_AGING", "ADD_PERIODIC_ACCRUAL_ENTRIES",
+                    "EXTERNAL_ASSET_OWNER_TRANSFER", "CHECK_DUE_INSTALLMENTS");
+
+            enableLoanAccountCustomSnapshotBusinessEvent();
+
+            // Create Client
+            Long clientId = createClient();
+
+            // Create Loan Product
+            PostLoanProductsRequest loanProductsRequest = create1InstallmentAmountInMultiplesOf4Period1MonthLongWithInterestAndAmortizationProduct(
+                    LoanTestData.InterestType.FLAT, LoanTestData.AmortizationType.EQUAL_INSTALLMENTS);
+            Long loanProductId = createLoanProduct(loanProductsRequest);
+
+            // Apply and Approve Loan
+            Long loanId = applyAndApproveLoan(clientId, loanProductId, "01 January 2023", 1250.0, 4);
+
+            // Disburse Loan
+            disburseLoan(loanId, BigDecimal.valueOf(1250), "01 January 2023");
+
+            // Verify Repayment Schedule and Due Dates
+            verifyRepaymentSchedule(loanId, //
+                    installment(1250.0, null, "01 January 2023"), //
+                    installment(312.0, false, "31 January 2023"), //
+                    installment(312.0, false, "02 March 2023"), //
+                    installment(312.0, false, "01 April 2023"), //
+                    installment(314.0, false, "01 May 2023") //
+            );
+
+            // delete all external events
+            deleteAllExternalEvents();
+
+            // run cob
+            updateBusinessDateAndExecuteCOBJob("01 February 2023");
+
+            // verify external events
+            List<ExternalEventResponse> allExternalEvents = externalEventHelper.getAllExternalEvents();
+            Assertions.assertEquals(1, allExternalEvents.size());
+            Assertions.assertEquals(LOAN_ACCOUNT_CUSTOM_SNAPSHOT_EVENT, allExternalEvents.get(0).getType());
+            Assertions.assertEquals(loanId, allExternalEvents.get(0).getAggregateRootId());
+
+            // Loan Delinquency data validation
+            Map<String, Object> payLoad = (Map<String, Object>) allExternalEvents.get(0).getPayLoad().get("delinquent");
+            log.info("Payload: {}", payLoad.toString());
+
+            Assertions.assertNotNull(payLoad.get("delinquentPrincipal"));
+            Assertions.assertEquals(312.0, payLoad.get("delinquentPrincipal"));
+            Assertions.assertNotNull(payLoad.get("delinquentInterest"));
+            Assertions.assertEquals(0.0, payLoad.get("delinquentInterest"));
+            Assertions.assertNotNull(payLoad.get("delinquentFee"));
+            Assertions.assertEquals(0.0, payLoad.get("delinquentFee"));
+            Assertions.assertNotNull(payLoad.get("delinquentPenalty"));
+            Assertions.assertEquals(0.0, payLoad.get("delinquentPenalty"));
+
+            payLoad = (Map<String, Object>) allExternalEvents.get(0).getPayLoad().get("summary");
+            log.info("Payload: {}", payLoad.toString());
+            Assertions.assertNotNull(payLoad.get("totalInterestPaymentWaiver"));
+            Assertions.assertEquals(0.0, payLoad.get("totalInterestPaymentWaiver"));
+            Assertions.assertNotNull(payLoad.get("totalRepaymentTransactionReversed"));
+            Assertions.assertEquals(0.0, payLoad.get("totalRepaymentTransactionReversed"));
+        });
+    }
+
+    @Test
+    public void testNoSnapshotEventGenerationWhenLoanInstallmentIsPayed() {
+        runAt("31 January 2023", () -> {
+            // Enable Business Step
+            enableCOBBusinessStep("APPLY_CHARGE_TO_OVERDUE_LOANS", "LOAN_DELINQUENCY_CLASSIFICATION", "CHECK_LOAN_REPAYMENT_DUE",
+                    "CHECK_LOAN_REPAYMENT_OVERDUE", "UPDATE_LOAN_ARREARS_AGING", "ADD_PERIODIC_ACCRUAL_ENTRIES",
+                    "EXTERNAL_ASSET_OWNER_TRANSFER", "CHECK_DUE_INSTALLMENTS");
+
+            enableLoanAccountCustomSnapshotBusinessEvent();
+
+            // Create Client
+            Long clientId = createClient();
+
+            // Create Loan Product
+            PostLoanProductsRequest loanProductsRequest = create1InstallmentAmountInMultiplesOf4Period1MonthLongWithInterestAndAmortizationProduct(
+                    LoanTestData.InterestType.FLAT, LoanTestData.AmortizationType.EQUAL_INSTALLMENTS);
+            Long loanProductId = createLoanProduct(loanProductsRequest);
+
+            // Apply and Approve Loan
+            Long loanId = applyAndApproveLoan(clientId, loanProductId, "01 January 2023", 1250.0, 4);
+
+            // Disburse Loan
+            disburseLoan(loanId, BigDecimal.valueOf(1250), "01 January 2023");
+
+            // Verify Repayment Schedule and Due Dates
+            verifyRepaymentSchedule(loanId, //
+                    installment(1250.0, null, "01 January 2023"), //
+                    installment(312.0, false, "31 January 2023"), //
+                    installment(312.0, false, "02 March 2023"), //
+                    installment(312.0, false, "01 April 2023"), //
+                    installment(314.0, false, "01 May 2023") //
+            );
+
+            addRepaymentForLoan(loanId, 313.0, "31 January 2023");
+
+            // Verify Repayment Schedule and Due Dates
+            verifyRepaymentSchedule(loanId, //
+                    installment(1250.0, null, "01 January 2023"), //
+                    installment(312.0, true, "31 January 2023"), //
+                    installment(312.0, false, "02 March 2023"), //
+                    installment(312.0, false, "01 April 2023"), //
+                    installment(314.0, false, "01 May 2023") //
+            );
+
+            // delete all external events
+            deleteAllExternalEvents();
+
+            // run cob
+            updateBusinessDateAndExecuteCOBJob("01 February 2023");
+
+            // verify external events
+            List<ExternalEventResponse> allExternalEvents = externalEventHelper.getAllExternalEvents();
+            Assertions.assertEquals(0, allExternalEvents.size());
+        });
+    }
+
+    @Test
+    public void testNoSnapshotEventGenerationWhenWhenCustomSnapshotEventCOBTaskIsNotActive() {
+        runAt("31 January 2023", () -> {
+            // Enable Business Step
+            enableCOBBusinessStep("APPLY_CHARGE_TO_OVERDUE_LOANS", "LOAN_DELINQUENCY_CLASSIFICATION", "CHECK_LOAN_REPAYMENT_DUE",
+                    "CHECK_LOAN_REPAYMENT_OVERDUE", "UPDATE_LOAN_ARREARS_AGING", "ADD_PERIODIC_ACCRUAL_ENTRIES",
+                    "EXTERNAL_ASSET_OWNER_TRANSFER");
+
+            enableLoanAccountCustomSnapshotBusinessEvent();
+
+            // Create Client
+            Long clientId = createClient();
+
+            // Create Loan Product
+            PostLoanProductsRequest loanProductsRequest = create1InstallmentAmountInMultiplesOf4Period1MonthLongWithInterestAndAmortizationProduct(
+                    LoanTestData.InterestType.FLAT, LoanTestData.AmortizationType.EQUAL_INSTALLMENTS);
+            Long loanProductId = createLoanProduct(loanProductsRequest);
+
+            // Apply and Approve Loan
+            Long loanId = applyAndApproveLoan(clientId, loanProductId, "01 January 2023", 1250.0, 4);
+
+            // Disburse Loan
+            disburseLoan(loanId, BigDecimal.valueOf(1250), "01 January 2023");
+
+            // Verify Repayment Schedule and Due Dates
+            verifyRepaymentSchedule(loanId, //
+                    installment(1250.0, null, "01 January 2023"), //
+                    installment(312.0, false, "31 January 2023"), //
+                    installment(312.0, false, "02 March 2023"), //
+                    installment(312.0, false, "01 April 2023"), //
+                    installment(314.0, false, "01 May 2023") //
+            );
+
+            // delete all external events
+            deleteAllExternalEvents();
+
+            // run cob
+            updateBusinessDateAndExecuteCOBJob("01 February 2023");
+
+            // verify external events
+            List<ExternalEventResponse> allExternalEvents = externalEventHelper.getAllExternalEvents();
+            Assertions.assertEquals(0, allExternalEvents.size());
+        });
+    }
+
+    @Test
+    public void testNoSnapshotEventGenerationWhenCOBDateIsNotMatchingWithInstallmentDueDate() {
+        runAt("30 January 2023", () -> {
+            // Enable Business Step
+            enableCOBBusinessStep("APPLY_CHARGE_TO_OVERDUE_LOANS", "LOAN_DELINQUENCY_CLASSIFICATION", "CHECK_LOAN_REPAYMENT_OVERDUE",
+                    "UPDATE_LOAN_ARREARS_AGING", "ADD_PERIODIC_ACCRUAL_ENTRIES", "EXTERNAL_ASSET_OWNER_TRANSFER", "CHECK_DUE_INSTALLMENTS");
+
+            enableLoanAccountCustomSnapshotBusinessEvent();
+
+            // Create Client
+            Long clientId = createClient();
+
+            // Create Loan Product
+            PostLoanProductsRequest loanProductsRequest = create1InstallmentAmountInMultiplesOf4Period1MonthLongWithInterestAndAmortizationProduct(
+                    LoanTestData.InterestType.FLAT, LoanTestData.AmortizationType.EQUAL_INSTALLMENTS);
+            Long loanProductId = createLoanProduct(loanProductsRequest);
+
+            // Apply and Approve Loan
+            Long loanId = applyAndApproveLoan(clientId, loanProductId, "01 January 2023", 1250.0, 4);
+
+            // Disburse Loan
+            disburseLoan(loanId, BigDecimal.valueOf(1250), "01 January 2023");
+
+            // Verify Repayment Schedule and Due Dates
+            verifyRepaymentSchedule(loanId, //
+                    installment(1250.0, null, "01 January 2023"), //
+                    installment(312.0, false, "31 January 2023"), //
+                    installment(312.0, false, "02 March 2023"), //
+                    installment(312.0, false, "01 April 2023"), //
+                    installment(314.0, false, "01 May 2023") //
+            );
+
+            // delete all external events
+            deleteAllExternalEvents();
+
+            // run cob
+            updateBusinessDateAndExecuteCOBJob("31 January 2023");
+
+            // verify external events
+            List<ExternalEventResponse> allExternalEvents = externalEventHelper.getAllExternalEvents();
+            Assertions.assertEquals(0, allExternalEvents.size());
+        });
+    }
+
+    @Test
+    public void testNoSnapshotEventGenerationWhenCustomSnapshotEventIsDisabled() {
+        runAt("31 January 2023", () -> {
+            // disable custom snapshot event
+            disableLoanAccountCustomSnapshotBusinessEvent();
+            // Enable Business Step
+            enableCOBBusinessStep("APPLY_CHARGE_TO_OVERDUE_LOANS", "LOAN_DELINQUENCY_CLASSIFICATION", "CHECK_LOAN_REPAYMENT_DUE",
+                    "CHECK_LOAN_REPAYMENT_OVERDUE", "UPDATE_LOAN_ARREARS_AGING", "ADD_PERIODIC_ACCRUAL_ENTRIES",
+                    "EXTERNAL_ASSET_OWNER_TRANSFER", "CHECK_DUE_INSTALLMENTS");
+
+            // Create Client
+            Long clientId = createClient();
+
+            // Create Loan Product
+            PostLoanProductsRequest loanProductsRequest = create1InstallmentAmountInMultiplesOf4Period1MonthLongWithInterestAndAmortizationProduct(
+                    LoanTestData.InterestType.FLAT, LoanTestData.AmortizationType.EQUAL_INSTALLMENTS);
+            Long loanProductId = createLoanProduct(loanProductsRequest);
+
+            // Apply and Approve Loan
+            Long loanId = applyAndApproveLoan(clientId, loanProductId, "01 January 2023", 1250.0, 4);
+
+            // Disburse Loan
+            disburseLoan(loanId, BigDecimal.valueOf(1250), "01 January 2023");
+
+            // Verify Repayment Schedule and Due Dates
+            verifyRepaymentSchedule(loanId, //
+                    installment(1250.0, null, "01 January 2023"), //
+                    installment(312.0, false, "31 January 2023"), //
+                    installment(312.0, false, "02 March 2023"), //
+                    installment(312.0, false, "01 April 2023"), //
+                    installment(314.0, false, "01 May 2023") //
+            );
+
+            // delete all external events
+            deleteAllExternalEvents();
+
+            // run cob
+            updateBusinessDateAndExecuteCOBJob("01 February 2023");
+
+            // verify external events
+            List<ExternalEventResponse> allExternalEvents = externalEventHelper.getAllExternalEvents();
+            Assertions.assertEquals(0, allExternalEvents.size());
+        });
+    }
+
+    private void enableCOBBusinessStep(String... steps) {
+        businessStepHelper.updateSteps(LOAN_COB_JOB, steps);
+    }
+
+    private void enableLoanAccountCustomSnapshotBusinessEvent() {
+        externalEventHelper.enableBusinessEvent(LOAN_ACCOUNT_CUSTOM_SNAPSHOT_EVENT);
+    }
+
+    private void disableLoanAccountCustomSnapshotBusinessEvent() {
+        externalEventHelper.disableBusinessEvent(LOAN_ACCOUNT_CUSTOM_SNAPSHOT_EVENT);
+    }
+
+    private void updateBusinessDateAndExecuteCOBJob(String date) {
+        updateBusinessDate(date);
+        schedulerHelper.executeAndAwaitJob("Loan COB");
+    }
+
+}

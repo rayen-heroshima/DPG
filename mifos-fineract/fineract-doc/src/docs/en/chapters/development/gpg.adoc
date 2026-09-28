@@ -1,0 +1,13 @@
+= GnuPG
+
+GNU Privacy Guard is used for signing commits and releases and for verifying those signatures. Any https://gnupg.org/download/#end-of-life[non-EOL v2 release of GnuPG] should work.
+
+See <<Signing releases>> for help generating keys.
+
+== Committers
+
+Provide your public key fingerprint in your Apache committer profile at https://id.apache.org.
+
+== PMC members
+
+Include your public key in https://downloads.apache.org/fineract/KEYS[our KEYS file].

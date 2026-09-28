@@ -1,0 +1,309 @@
+import {ActualValue, DefaultTranslations, LineChartData, SectorReport, YearValues} from "../types";
+import {printChart} from "../../../sscdashboard/utils/PrintUtils";
+import {
+    BASE_VALUE,
+    BASE_VALUE_COLOR,
+    CURRENT_VALUE,
+    CURRENT_VALUE_COLOR,
+    DEFAULT_REPORTING_PERIOD,
+    SECTOR_COLOR,
+    TARGET_VALUE,
+    TARGET_VALUE_COLOR
+} from "../../utils/constants";
+import {DataType} from "../components/charts/BarChart";
+import dayjs from "dayjs";
+
+interface GaugeUtils {
+    baseValue: number,
+    actualValue: number,
+    targetValue: number
+}
+
+interface ValuesDataset {
+    data: any,
+    translations: DefaultTranslations
+}
+
+interface SectorDataset {
+    data: SectorReport,
+    translations: DefaultTranslations
+}
+
+class ChartUtils {
+    public static generateTickValues = (min: number, max: number,  step: number) => {
+        const tickValues: number[] = [];
+        for (let i = min; i <= max; i += step) {
+            tickValues.push(i);
+        }
+        return tickValues;
+    }
+
+    public static getMaxAndMinValueForAxis = (data: GaugeUtils) => {
+        const { baseValue, actualValue, targetValue } = data;
+        const values = [baseValue, actualValue, targetValue];
+        return {
+            min: Math.min(...values),
+            max: Math.max(...values)
+        }
+    }
+
+    public static generateGaugeValue = (data : GaugeUtils) => {
+        const { baseValue, actualValue, targetValue } = data;
+        if (!targetValue || !baseValue) return 0;
+        if (actualValue < baseValue) return 0;
+        if (targetValue === baseValue) return 0;
+
+        const actual = actualValue ? actualValue : baseValue;
+
+        // formula:  [(Current value - Base value) / (Target value - Base value)]*100
+        const progress = (actual - baseValue) / (targetValue - baseValue);
+        return Math.round(progress * 100);
+    }
+
+    public static getActualValueForCurrentYear = (actualValues: ActualValue []) => {
+        if (!actualValues || actualValues.length === 0) return 0;
+
+        const currentYear = new Date().getFullYear();
+        const actualValue = actualValues.find((actual) => actual.year === currentYear);
+
+        if (!actualValue) {
+            // if current year is not found, get the most recent year
+            // Create a copy before sorting to avoid modifying the original read-only array
+            const sortedActualValues = [...actualValues].sort((a: any, b: any) => b.year - a.year);
+            return sortedActualValues[0].value;
+        }
+
+        return actualValue ? actualValue.value : 0;
+    }
+    public static sumActualValues = (actualValues: ActualValue []) => {
+        if (!actualValues || actualValues.length === 0) return 0;
+
+        return actualValues.reduce((acc, curr) => acc + curr.value, 0);
+    }
+
+    public static getMaxActualValue = (actualValues: ActualValue []) => {
+        if (!actualValues || actualValues.length === 0) return 0;
+
+        const sortedActualValues = actualValues.sort((a: any, b: any) => b.value - a.value);
+        return sortedActualValues[0].value;
+    }
+
+    public static computeAggregateValues = (data: YearValues []) => {
+        return data.reduce((acc, curr) => {
+            if (!curr.actualValues || curr.actualValues.length === 0) {
+                acc.actualValue += curr.baseValue;
+            }
+            acc.actualValue += ChartUtils.sumActualValues(curr.actualValues);
+            acc.targetValue += curr.targetValue;
+            acc.baseValue += curr.baseValue;
+            return acc;
+        }, {actualValue: 0, targetValue: 0, baseValue: 0});
+    }
+
+    public static downloadChartImage = (title: string, containerId: string) => {
+        printChart(title, containerId, [], 'png', false, 'print-simple-dummy-container', false);
+    }
+
+    public static generateLineChartValues = (data: YearValues): LineChartData [] => {
+        const {actualValues, targetValue, baseValue} = data;
+        const reportlength = actualValues.length >= 5 ? actualValues.length : DEFAULT_REPORTING_PERIOD;
+
+        const baseValueArrayWithYear = new Array(reportlength).fill(baseValue).map((value, index) => {
+            return {
+                x: (new Date().getFullYear() - index).toString(),
+                y: value as number
+            };
+        }).sort((a, b) => parseInt(a.x) - parseInt(b.x));
+
+        const targetValueArrayWithYear = new Array(reportlength).fill(targetValue).map((value, index) => {
+            return {
+                x: (new Date().getFullYear() - index).toString(),
+                y: value as number
+            };
+        }).sort((a, b) => parseInt(a.x) - parseInt(b.x));
+
+        const initialActualValues = new Array(reportlength).fill(0).map((value, index) => {
+            let actualValue = actualValues.find((actual) => actual.year === (new Date().getFullYear() - index));
+
+            const findBaseValue = baseValueArrayWithYear.find((base) => base.x === (new Date().getFullYear() - index).toString());
+            return {
+                x: (new Date().getFullYear() - index).toString(),
+                y: actualValue ? actualValue.value : (findBaseValue ? findBaseValue.y : 0)
+            };
+        }).sort((a, b) => parseInt(a.x) - parseInt(b.x))
+
+
+        const actualValueArrayWithYear = initialActualValues.map((value, index, array) => {
+            if (value.y === 0) {
+                const previousValue = array[index - 1];
+
+                if (previousValue) {
+                    return {
+                        x: value.x,
+                        y: previousValue.y
+                    }
+                }
+            }
+
+            return value;
+        })
+
+        return [
+            {
+                id: BASE_VALUE,
+                color: BASE_VALUE_COLOR,
+                data: baseValueArrayWithYear
+            },
+            {
+                id: CURRENT_VALUE,
+                color: CURRENT_VALUE_COLOR,
+                data: data.actualValues.length > 0 ? actualValueArrayWithYear : baseValueArrayWithYear
+            },
+            {
+                id: TARGET_VALUE,
+                color: TARGET_VALUE_COLOR,
+                data: targetValueArrayWithYear
+            }
+        ];
+    }
+
+    public static generateValuesDataset = (props: ValuesDataset) => {
+        const {data, translations } = props;
+
+        const finalDataSet: DataType [] = [];
+
+        const collectItems = Array.isArray(data) ? data : (data ? [data] : []);
+
+        // helper to parse dd/MM/yyyy or ISO to Date
+        const parseDate = (d?: string): Date | null => {
+            if (!d) return null;
+            const parts = d.split('/');
+            if (parts.length === 3 && parts[2].length === 4) {
+                const [dd, MM, yyyy] = parts;
+                const dateObj = new Date(Number(yyyy), Number(MM) - 1, Number(dd));
+                return isNaN(dateObj.getTime()) ? null : dateObj;
+            }
+            const iso = new Date(d);
+            return isNaN(iso.getTime()) ? null : iso;
+        };
+        // new helper: extract only the year string
+        const extractYear = (d?: string): string | undefined => {
+            if (!d) return undefined;
+            if (/^\d{4}$/.test(d)) return d; // already a year
+            const parsed = parseDate(d);
+            return parsed ? parsed.getFullYear().toString() : undefined;
+        };
+        const getLatestYearForActualValues = (values: ActualValue[]): number | undefined => {
+            if (!values || values.length === 0) return undefined;
+            const years = values.map(v => { return Number(v.year); }).filter((y): y is number => y !== null);
+            if (years.length === 0) return undefined;
+            return Math.max(...years);
+        }
+        const getMaxDateString = (dates: string[]): string | undefined => {
+            const mapped = dates.map(d => ({ raw: d, date: parseDate(d) }))
+                .filter(o => o.date !== null) as { raw: string; date: Date }[];
+            if (mapped.length === 0) return undefined;
+            mapped.sort((a,b) => a.date.getTime() - b.date.getTime());
+            return mapped[mapped.length - 1].raw; // keep original formatting
+        };
+
+        // aggregate numeric values (existing logic)
+        let aggregateValue = { baseValue: 0, targetValue: 0, actualValue: 0 };
+        if (collectItems.length > 0) {
+            aggregateValue = ChartUtils.computeAggregateValues(collectItems as YearValues[]);
+        }
+
+        // collect date strings
+        const baseDates: string[] = collectItems.map((i: YearValues) => i.baseValueDate).filter(Boolean);
+        const targetDates: string[] = collectItems.map((i: YearValues) => i.targetValueDate).filter(Boolean);
+        const maxBaseDateStr = getMaxDateString(baseDates);
+        const maxTargetDateStr = getMaxDateString(targetDates);
+        const year = new Date().getFullYear();
+        const maxActualYearStr = getLatestYearForActualValues(collectItems.flatMap(i => i.actualValues));
+
+        const baseYearLabel = extractYear(maxBaseDateStr) || year;
+        const targetYearLabel = extractYear(maxTargetDateStr) || year;
+
+        if (aggregateValue.baseValue) {
+            const baseData = {
+                id: translations['amp.ndd.dashboard:me-baseline'],
+                value: aggregateValue.baseValue,
+                label: `${translations['amp.ndd.dashboard:me-baseline']} ${baseYearLabel}`.trim(),
+                color: BASE_VALUE_COLOR
+            };
+            finalDataSet.push(baseData);
+        }
+
+        if (aggregateValue.actualValue) {
+            const actualData = {
+                id: translations['amp.ndd.dashboard:me-current'],
+                value: aggregateValue.actualValue,
+                label: `${translations['amp.ndd.dashboard:me-current']} ${maxActualYearStr || year}`.trim(),
+                color: CURRENT_VALUE_COLOR
+            };
+            finalDataSet.push(actualData);
+        }
+
+        if (aggregateValue.targetValue) {
+            const targetData = {
+                id: translations['amp.ndd.dashboard:me-target'],
+                value: aggregateValue.targetValue,
+                label: `${translations['amp.ndd.dashboard:me-target']} ${targetYearLabel}`.trim(),
+                color: TARGET_VALUE_COLOR
+            };
+            finalDataSet.push(targetData);
+        }
+
+        return finalDataSet;
+    }
+
+    public static generateSectorsReport = (props: SectorDataset) => {
+        const {data, translations} = props;
+
+        const processedReport: DataType [] = [];
+
+        if (data) {
+            data.values.map((sector, index) => {
+                const sectorData = {
+                    id: sector.name,
+                    value: sector.amount,
+                    label: sector.name,
+                    color: SECTOR_COLOR[index]
+                };
+
+                processedReport.push(sectorData);
+            })
+        }
+
+        return processedReport;
+
+    };
+
+    public static formatNumber = (value: number) => {
+        return value.toLocaleString('en-US', {maximumFractionDigits: 4}).replaceAll(',',' ');
+    }
+
+    public static getYearOptions = (startDate: string, endDate: string, dateFormat = 'dd/MM/yyyy', translations: DefaultTranslations) => {
+        const options: { label: string, value: number}[] = [];
+
+        if (startDate && endDate) {
+            const startYear = dayjs(startDate).year()
+            const endYear = new Date(endDate).getFullYear();
+
+            const yearDiff = endYear - startYear;
+            const yearRemainder = yearDiff % 5;
+            const yearOptions = yearDiff - yearRemainder;
+
+            for (let i = 5; i <= yearOptions; i += 5) {
+                options.push({
+                    label: `${i} ${translations['amp.ndd.dashboard:years']}`,
+                    value: i
+                });
+            }
+        }
+
+        return options;
+    };
+}
+
+export default ChartUtils;

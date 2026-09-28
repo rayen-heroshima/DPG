@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+ 
+<Context path="/" debug="0" reloadable="false" unloadDelay="4000" swallowOutput="true"
+allowLinking="true" antiJARLocking="" antiResourceLocking="" clearReferencesStopTimerThreads="true"
+clearReferencesThreadLocals="true" jndiExceptionOnFailedWrite="false" processTlds="false">
+  <Environment name="hostname" value="" type="java.lang.String"/> 
+
+  <!-- SameSite=Lax: browser will not send the session cookie on cross-site
+       POST/PUT/DELETE requests, providing CSRF protection for all endpoints
+       including /rest/** without requiring any token in requests. -->
+  <CookieProcessor sameSiteCookies="lax" />
+  <!-- PostgreSQL connection -->
+  <Resource factory="org.apache.tomcat.jdbc.pool.DataSourceFactory" 
+  	defaultTransactionIsolation="READ_COMMITTED" 
+  	driverClassName="org.postgresql.Driver" 
+  	maxActive="500" 
+  	maxIdle="30" 
+  	maxWait="5000" 
+  	jmxEnabled="true"
+  	name="ampDS"  
+  	removeAbandoned="true" 
+  	removeAbandonedTimeout="600"
+  	suspectTimeout="120" 
+  	logAbandoned="true" 
+  	type="javax.sql.DataSource"
+  	url="" 
+  	username="" 
+  	password="" 
+  	validationQuery="SELECT 1" 
+  	validationInterval="10000" 
+  	testOnBorrow="true" 
+  	testWhileIdle="false" 
+  	timeBetweenEvictionRunsMillis="20000" 
+  	useDisposableConnectionFacade="true"  
+  	jdbcInterceptors="ConnectionState;StatementFinalizer;ResetAbandonedTimer;SlowQueryReport(threshold=60000)" 
+  />
+  
+  <!-- PostgreSQL connection used for JackRabbit Repository. The acquired database connection is kept for the entire lifetime of the persistence manager instance.
+        It shouldn't remove abandoned connections.
+  -->
+  <Resource factory="org.apache.tomcat.jdbc.pool.DataSourceFactory"
+    defaultTransactionIsolation="READ_COMMITTED"
+    driverClassName="org.postgresql.Driver"
+    maxActive="10"
+    maxIdle="5"
+    maxWait="5000"
+    jmxEnabled="true"
+    name="jcrDS"
+    type="javax.sql.DataSource"
+    url=""
+    username=""
+    password=""
+    validationQuery="SELECT 1"
+    validationInterval="10000"
+    testOnBorrow="true"
+    testWhileIdle="false"
+    timeBetweenEvictionRunsMillis="20000"
+    useDisposableConnectionFacade="true"
+    jdbcInterceptors="ConnectionState;StatementFinalizer;ResetAbandonedTimer;SlowQueryReport(threshold=60000)"
+  />
+
+  <Manager className="org.apache.catalina.session.PersistentManager" debug="0" distributable="false" saveOnRestart="false">
+  	<Store className="org.apache.catalina.session.FileStore"/>
+  </Manager>
+  
+</Context>
+<!-- 
+<Context path="/" debug="0" reloadable="false" unloadDelay="4000" swallowOutput="true" allowLinking="true" antiJARLocking="" antiResourceLocking="" clearReferencesStopTimerThreads="true" clearReferencesThreadLocals="true" jndiExceptionOnFailedWrite="false" processTlds="false">
+	<Environment name="hostname" value="" type="java.lang.String"/> 
+	<Resource defaultTransactionIsolation="READ_COMMITTED" driverClassName="com.mysql.jdbc.Driver" maxActive="500" maxIdle="30" maxWait="5000" name="ampDS" removeAbandoned="true" logAbandoned="true" type="javax.sql.DataSource" url="" username="" password=""
+		validationQuery="SELECT 1" testOnBorrow="true" testWhileIdle="true" timeBetweenEvictionRunsMillis="10000" />
+	<Manager className="org.apache.catalina.session.PersistentManager" debug="0" distributable="false" saveOnRestart="false">
+  		<Store className="org.apache.catalina.session.FileStore"/>
+  </Manager>
+</Context> -->

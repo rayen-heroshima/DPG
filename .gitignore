@@ -1,0 +1,25 @@
+# Each project keeps its own .gitignore; this file only covers the monorepo level.
+
+# Upstream git histories, kept locally (renamed from .git when the projects were flattened)
+.git-upstream/
+
+# Secrets — commit .env.example instead
+.env
+.env.*
+!.env.example
+
+# Large data not needed to run (see README-DPGs.md)
+amp/allCountries/
+
+# Eclipse compile output
+amp/amp/bin/
+dhis2/dhis-2/dhis-support/dhis-support-hibernate/bin/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+*.iml
+.vscode/
+*.log

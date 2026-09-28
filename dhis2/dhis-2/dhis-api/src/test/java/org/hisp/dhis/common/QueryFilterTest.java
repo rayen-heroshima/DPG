@@ -1,0 +1,142 @@
+/*
+ * Copyright (c) 2004-2022, University of Oslo
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its contributors 
+ * may be used to endorse or promote products derived from this software without
+ * specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package org.hisp.dhis.common;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+class QueryFilterTest {
+
+  @Test
+  void testUnderscoreIsEscaped() {
+    QueryFilter queryFilter = new QueryFilter();
+    queryFilter.setOperator(QueryOperator.LIKE);
+    assertThat(queryFilter.getSqlFilter("_"), is("'%\\_%'"));
+  }
+
+  @Test
+  void testPercentageSignIsEscaped() {
+    QueryFilter queryFilter = new QueryFilter();
+    queryFilter.setOperator(QueryOperator.LIKE);
+    assertThat(queryFilter.getSqlFilter("%"), is("'%\\%%'"));
+  }
+
+  @Test
+  @DisplayName("Non-option-set NV with substitution allowed: equals operator returns null")
+  void testNonOptionSetNvReturnsNull() {
+    QueryFilter queryFilter = new QueryFilter();
+    queryFilter.setOperator(QueryOperator.EQ);
+    assertThat(queryFilter.getSqlFilter("NV", true), is("null"));
+  }
+
+  @Test
+  @DisplayName("Option-set D2__NOVALUE with substitution allowed: equals operator returns null")
+  void testOptionSetNoValueReturnsNull() {
+    QueryFilter queryFilter = new QueryFilter();
+    queryFilter.setOperator(QueryOperator.EQ);
+    assertThat(queryFilter.getSqlFilter("D2__NOVALUE", true, true), is("null"));
+  }
+
+  @Test
+  @DisplayName("Option-set NV is a literal option code, not no-value")
+  void testOptionSetNvIsLiteral() {
+    QueryFilter queryFilter = new QueryFilter();
+    queryFilter.setOperator(QueryOperator.EQ);
+    assertThat(queryFilter.getSqlFilter("NV", true, true), is("'NV'"));
+  }
+
+  @Test
+  @DisplayName("D2__NOVALUE on a non-option-set dimension is a literal, not no-value")
+  void testNonOptionSetNoValueKeywordIsLiteral() {
+    QueryFilter queryFilter = new QueryFilter();
+    queryFilter.setOperator(QueryOperator.EQ);
+    assertThat(queryFilter.getSqlFilter("D2__NOVALUE", true), is("'D2__NOVALUE'"));
+  }
+
+  @Test
+  @DisplayName("When substitution is not allowed, the no-value keyword is returned as a literal")
+  void testNullValueReturnedIfSubstitutionNotAllowed() {
+    QueryFilter queryFilter = new QueryFilter();
+    queryFilter.setOperator(QueryOperator.EQ);
+    assertThat(queryFilter.getSqlFilter("NV", false), is("'NV'"));
+  }
+
+  @Test
+  @DisplayName(
+      "When value substitution allowed and any random text provided, equals operator returns text")
+  void testRandomTextReturnedIfSubstitutionAllowed() {
+    QueryFilter queryFilter = new QueryFilter();
+    queryFilter.setOperator(QueryOperator.EQ);
+    assertThat(queryFilter.getSqlFilter("NVA", true), is("'NVA'"));
+  }
+
+  @Test
+  void testOperatorIsNotReplacedWhenNotAllowed() {
+    QueryFilter queryFilter = new QueryFilter(QueryOperator.EQ, "NV");
+    assertThat(queryFilter.getSqlOperator(), is("="));
+  }
+
+  @Test
+  @DisplayName("Non-option-set NV replaces the equals operator with 'is' when allowed")
+  void testOperatorIsReplacedForNonOptionSetNv() {
+    QueryFilter queryFilter = new QueryFilter(QueryOperator.EQ, "NV");
+    assertThat(queryFilter.getSqlOperator(true), is("is"));
+  }
+
+  @Test
+  @DisplayName("Option-set D2__NOVALUE replaces the equals operator with 'is' when allowed")
+  void testOperatorIsReplacedForOptionSetNoValue() {
+    QueryFilter queryFilter = new QueryFilter(QueryOperator.EQ, "D2__NOVALUE");
+    assertThat(queryFilter.getSqlOperator(true, true), is("is"));
+  }
+
+  @Test
+  @DisplayName("Option-set NV does not replace the operator, since it is a literal code")
+  void testOperatorIsNotReplacedForOptionSetNv() {
+    QueryFilter queryFilter = new QueryFilter(QueryOperator.EQ, "NV");
+    assertThat(queryFilter.getSqlOperator(true, true), is("="));
+  }
+
+  @Test
+  @DisplayName("D2__NOVALUE does not replace the operator on a non-option-set dimension")
+  void testOperatorIsNotReplacedForNonOptionSetNoValueKeyword() {
+    QueryFilter queryFilter = new QueryFilter(QueryOperator.EQ, "D2__NOVALUE");
+    assertThat(queryFilter.getSqlOperator(true), is("="));
+  }
+
+  @Test
+  void testOperatorIsNotReplacedWhenAllowedButRandomTextProvided() {
+    QueryFilter queryFilter = new QueryFilter(QueryOperator.EQ, "NVA");
+    assertThat(queryFilter.getSqlOperator(true), is("="));
+  }
+}

@@ -1,0 +1,5 @@
+# Local: also expose CKAN over plain HTTP (http://localhost:81)
+services:
+  nginx:
+    ports:
+      - "0.0.0.0:${NGINX_PORT_HOST}:${NGINX_PORT}"

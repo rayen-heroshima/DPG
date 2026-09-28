@@ -1,0 +1,136 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { ProductsService } from '../../products.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { Dates } from 'app/core/utils/dates';
+import { TranslateService } from '@ngx-translate/core';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Edit tax component.
+ */
+@Component({
+  selector: 'mifosx-edit-tax-component',
+  templateUrl: './edit-tax-component.component.html',
+  styleUrls: ['./edit-tax-component.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EditTaxComponentComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private productsService = inject(ProductsService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private dateUtils = inject(Dates);
+  private settingsService = inject(SettingsService);
+  private translateService = inject(TranslateService);
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum start date allowed. */
+  maxDate = new Date();
+  /** Tax Component form. */
+  taxComponentForm: UntypedFormGroup;
+  /** Tax Component data. */
+  taxComponentData: any;
+
+  /**
+   * Retrieves the offices data from `resolve`.
+   * @param {FormBuilder} formBuilder Form Builder.
+   * @param {ProductsService} productsService Products Service.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Router} router Router for navigation.
+   * @param {Dates} dateUtils Date Utils to format date.
+   * @param {SettingsService} settingsService Settings Service.
+   */
+  constructor() {
+    this.route.data.subscribe((data: { taxComponent: any }) => {
+      this.taxComponentData = data.taxComponent;
+    });
+  }
+
+  /**
+   * Creates the edit tax component form.
+   */
+  ngOnInit() {
+    this.minDate = this.settingsService.minAllowedDate;
+    this.maxDate = this.settingsService.maxAllowedDate;
+    this.editTaxComponent();
+  }
+
+  /**
+   * Edit tax component form.
+   */
+  editTaxComponent() {
+    const creditAccountTypeValue = this.taxComponentData?.creditAccountType?.value
+      ? this.translateService.instant(`labels.inputs.accounting.${this.taxComponentData.creditAccountType.value}`)
+      : null;
+
+    const creditAccountName = this.taxComponentData?.creditAccount?.name ?? null;
+
+    this.taxComponentForm = this.formBuilder.group({
+      name: [
+        this.taxComponentData.name,
+        [Validators.required]
+      ],
+      percentage: [
+        this.taxComponentData.percentage,
+        [
+          Validators.required,
+          Validators.pattern('^(0*[1-9][0-9]*(\\.[0-9]+)?|0+\\.[0-9]*[1-9][0-9]*)$'),
+          Validators.max(100)
+        ]
+      ],
+      startDate: [this.taxComponentData.startDate && new Date(this.taxComponentData.startDate)],
+      creditAccountType: [
+        {
+          value: creditAccountTypeValue,
+          disabled: true
+        }
+      ],
+      creditAccount: [{ value: creditAccountName, disabled: true }]
+    });
+  }
+
+  /**
+   * Submits the edit tax component form and edits tax component,
+   * if successfull redirects to tax component.
+   */
+  submit() {
+    const taxComponentFormData = this.taxComponentForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevStartDate: Date = this.taxComponentForm.value.startDate;
+    if (taxComponentFormData.startDate instanceof Date) {
+      taxComponentFormData.startDate = this.dateUtils.formatDate(prevStartDate, dateFormat);
+    }
+    const data = {
+      ...taxComponentFormData,
+      dateFormat,
+      locale
+    };
+    this.productsService.updateTaxComponent(this.taxComponentData.id, data).subscribe((response: any) => {
+      this.router.navigate(
+        [
+          '../../',
+          response.resourceId
+        ],
+        { relativeTo: this.route }
+      );
+    });
+  }
+}

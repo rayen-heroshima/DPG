@@ -1,0 +1,109 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+
+/** Custom Services. */
+import { ClientsService } from 'app/clients/clients.service';
+import { Dates } from 'app/core/utils/dates';
+import { SettingsService } from 'app/settings/settings.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Client Pay Charge component.
+ */
+@Component({
+  selector: 'mifosx-client-pay-charges',
+  templateUrl: './client-pay-charges.component.html',
+  styleUrls: ['./client-pay-charges.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ClientPayChargesComponent implements OnInit {
+  private clientsService = inject(ClientsService);
+  private formBuilder = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private dateUtils = inject(Dates);
+  private settingsService = inject(SettingsService);
+  private destroyRef = inject(DestroyRef);
+
+  /** Transaction Form. */
+  transactionForm: any;
+  /** Transaction Data. */
+  transactionData: any;
+  /** Minimum Date allowed. */
+  minDate = new Date(2000, 0, 1);
+
+  /**
+   * Retrieves the charge data from `resolve`.
+   * @param {ClientService} clientService Products Service.
+   * @param {FormBuilder} formBuilder Form Builder.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Router} router Router for navigation.
+   * @param {SettingsService} settingsService Setting service
+   */
+  constructor() {
+    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data: { transactionData: any }) => {
+      this.transactionData = data.transactionData;
+    });
+  }
+
+  ngOnInit() {
+    this.setTransactionForm();
+  }
+
+  /**
+   * Set Transaction Form.
+   */
+  setTransactionForm() {
+    this.transactionForm = this.formBuilder.group({
+      amount: [
+        this.transactionData.amount,
+        Validators.required
+      ],
+      transactionDate: [
+        new Date(),
+        Validators.required
+      ]
+    });
+  }
+
+  /**
+   * Submits Transaction form.
+   */
+  submit() {
+    const transactionFormData = this.transactionForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevTransactionDate = this.transactionForm.value.transactionDate;
+    if (transactionFormData.transactionDate instanceof Date) {
+      transactionFormData.transactionDate = this.dateUtils.formatDate(prevTransactionDate, dateFormat);
+    }
+    const data = {
+      ...transactionFormData,
+      dateFormat,
+      locale
+    };
+    this.clientsService.payClientCharge(this.transactionData.clientId, this.transactionData.id, data).subscribe(() => {
+      this.router.navigate(
+        [
+          '../../..',
+          'general'
+        ],
+        { relativeTo: this.route }
+      );
+    });
+  }
+}

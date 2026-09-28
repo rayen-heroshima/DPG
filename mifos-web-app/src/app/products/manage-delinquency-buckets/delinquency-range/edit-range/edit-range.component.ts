@@ -1,0 +1,91 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormBuilder, UntypedFormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ProductsService } from 'app/products/products.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+@Component({
+  selector: 'mifosx-edit-range',
+  templateUrl: './edit-range.component.html',
+  styleUrls: ['./edit-range.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EditRangeComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private productsService = inject(ProductsService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private settingsService = inject(SettingsService);
+
+  /** Delinquency Range Data. */
+  delinquencyRangeData: any;
+  /** Delinquency Range form. */
+  delinquencyRangeForm: UntypedFormGroup;
+
+  constructor() {
+    this.route.data.subscribe((data: { delinquencyRange: any }) => {
+      this.delinquencyRangeData = data.delinquencyRange;
+    });
+  }
+
+  ngOnInit(): void {
+    this.setInputForm();
+  }
+
+  /**
+   * Create Input form.
+   */
+  setInputForm(): void {
+    this.delinquencyRangeForm = this.formBuilder.group({
+      classification: [
+        this.delinquencyRangeData.classification,
+        [Validators.required]
+      ],
+      minimumAgeDays: [
+        this.delinquencyRangeData.minimumAgeDays,
+        [
+          Validators.required,
+          Validators.pattern('^(0*[1-9][0-9]*?)$'),
+          Validators.min(1)
+        ]
+      ],
+      maximumAgeDays: [
+        this.delinquencyRangeData.maximumAgeDays,
+        [
+          Validators.pattern('^(0*[1-9][0-9]*?)$'),
+          Validators.min(1)
+        ]
+      ]
+    });
+  }
+
+  submit(): void {
+    const delinquencyRangeFormData = this.delinquencyRangeForm.value;
+    const locale = this.settingsService.language.code;
+    const data = {
+      ...delinquencyRangeFormData,
+      locale
+    };
+    this.productsService.updateDelinquencyRange(this.delinquencyRangeData.id, data).subscribe((response: any) => {
+      this.router.navigate(
+        [
+          '../../',
+          response.resourceId
+        ],
+        { relativeTo: this.route }
+      );
+    });
+  }
+}

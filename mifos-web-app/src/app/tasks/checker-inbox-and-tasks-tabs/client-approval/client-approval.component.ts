@@ -1,0 +1,254 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  QueryList,
+  ViewChildren,
+  inject
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { SelectionModel } from '@angular/cdk/collections';
+import * as _ from 'lodash';
+import { MatPaginator } from '@angular/material/paginator';
+import {
+  MatTableDataSource,
+  MatTable,
+  MatColumnDef,
+  MatHeaderCellDef,
+  MatHeaderCell,
+  MatCellDef,
+  MatCell,
+  MatHeaderRowDef,
+  MatHeaderRow,
+  MatRowDef,
+  MatRow
+} from '@angular/material/table';
+import { MatDialog } from '@angular/material/dialog';
+
+/** Dialog Imports */
+import { FormDialogComponent } from 'app/shared/form-dialog/form-dialog.component';
+import { FormfieldBase } from 'app/shared/form-dialog/formfield/model/formfield-base';
+import { DatepickerBase } from 'app/shared/form-dialog/formfield/model/datepicker-base';
+
+/** Custom Services */
+import { TasksService } from '../../tasks.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { Dates } from 'app/core/utils/dates';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { AccountsFilterPipe } from '../../../pipes/accounts-filter.pipe';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+@Component({
+  selector: 'mifosx-client-approval',
+  templateUrl: './client-approval.component.html',
+  styleUrls: ['./client-approval.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    FaIconComponent,
+    MatTable,
+    MatColumnDef,
+    MatHeaderCellDef,
+    MatHeaderCell,
+    MatCheckbox,
+    MatCellDef,
+    MatCell,
+    MatHeaderRowDef,
+    MatHeaderRow,
+    MatRowDef,
+    MatRow,
+    MatPaginator
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ClientApprovalComponent implements AfterViewInit {
+  private route = inject(ActivatedRoute);
+  private dialog = inject(MatDialog);
+  private dateUtils = inject(Dates);
+  private router = inject(Router);
+  private settingsService = inject(SettingsService);
+  private tasksService = inject(TasksService);
+  private destroyRef = inject(DestroyRef);
+  private accountsFilterPipe = new AccountsFilterPipe();
+
+  /** Grouped Clients Data */
+  groupedClients: any;
+  groupedClientEntries: Array<{ key: string; value: any[] }> = [];
+  groupedClientDataSources: Record<string, MatTableDataSource<any>> = {};
+  /** Checks to show the data */
+  showData = false;
+  /** Batch Requests */
+  batchRequests: any[];
+  /** Row Selection Data */
+  selection: SelectionModel<any>;
+  @ViewChildren(MatPaginator) paginators!: QueryList<MatPaginator>;
+  /** Displayed Columns */
+  displayedColumns: string[] = [
+    'select',
+    'name',
+    'accountNumber',
+    'staff'
+  ];
+
+  /**
+   * Retrieves the grouped client data from `resolve`.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Dialog} dialog MatDialog.
+   * @param {Dates} dateUtils Date Utils.
+   * @param {router} router Router.
+   * @param {SettingsService} settingsService Settings Service.
+   * @param {TasksService} tasksService Tasks Service.
+   */
+  constructor() {
+    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data: { groupedClientData: any }) => {
+      this.groupedClients = _.groupBy(data.groupedClientData.pageItems, 'officeName');
+      this.groupedClientEntries = Object.entries(this.groupedClients).map(
+        ([
+          key,
+          value
+        ]) => ({
+          key,
+          value: this.accountsFilterPipe.transform(value, 'clientApproval', false, null) ?? []
+        })
+      );
+      this.groupedClientDataSources = {};
+      this.groupedClientEntries.forEach((entry) => {
+        this.groupedClientDataSources[entry.key] = new MatTableDataSource(entry.value);
+      });
+      if (this.groupedClientEntries.length) {
+        this.showData = true;
+      }
+      this.selection = new SelectionModel(true, []);
+    });
+  }
+
+  ngAfterViewInit() {
+    this.bindPaginators();
+    this.paginators.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.bindPaginators());
+  }
+
+  /** Whether the number of selected elements matches the total number of rows. */
+  isAllSelected(dataSource2: any) {
+    if (dataSource2) {
+      const numSelected = this.selection.selected;
+      return _.difference(dataSource2, numSelected).length === 0;
+    }
+  }
+
+  /** Selects all rows if they are not all selected; otherwise clear selection. */
+  masterToggle(dataSource3: any) {
+    if (dataSource3) {
+      this.isAllSelected(dataSource3)
+        ? dataSource3.forEach((row: any) => this.selection.deselect(row))
+        : dataSource3.forEach((row: any) => this.selection.select(row));
+    }
+  }
+
+  /** The label for the checkbox on the passed row */
+  checkboxLabel(row?: any): string {
+    if (!row) {
+      return `${this.isAllSelected(row) ? 'select' : 'deselect'} all`;
+    }
+    return `${this.selection.isSelected(row) ? 'deselect' : 'select'} row ${row.position + 1}`;
+  }
+
+  approveClients() {
+    const configuredBusinessDate = this.settingsService.businessDate;
+    const businessDate = Number.isFinite(configuredBusinessDate?.getTime()) ? configuredBusinessDate : new Date();
+    const formfields: FormfieldBase[] = [
+      new DatepickerBase({
+        controlName: 'actDate',
+        label: 'Date',
+        value: businessDate,
+        maxDate: businessDate,
+        type: 'datetime-local',
+        required: true
+      })
+    ];
+    const data = {
+      title: 'Enter Clients Activation Date',
+      layout: { addButtonText: 'Confirm' },
+      formfields: formfields,
+      pristine: false
+    };
+    const clientApprovalDialogRef = this.dialog.open(FormDialogComponent, { data });
+    clientApprovalDialogRef.afterClosed().subscribe((response: any) => {
+      if (response.data) {
+        this.bulkClientApproval(response.data);
+      }
+    });
+  }
+
+  bulkClientApproval(submittedData: any) {
+    const dateFormat = this.settingsService.dateFormat;
+    const activationDate = this.dateUtils.formatDate(submittedData.value.actDate, dateFormat);
+    const locale = this.settingsService.language.code;
+    const formData = {
+      dateFormat,
+      activationDate,
+      locale
+    };
+    const selectedAccounts = this.selection.selected.length;
+    const listSelectedAccounts = this.selection.selected;
+    let activatedAccounts = 0;
+    this.batchRequests = [];
+    let reqId = 1;
+    listSelectedAccounts.forEach((element: any) => {
+      const url = 'clients/' + element.id + '?command=activate';
+      const bodyData = JSON.stringify(formData);
+      const batchData = { requestId: reqId++, relativeUrl: url, method: 'POST', body: bodyData };
+      this.batchRequests.push(batchData);
+    });
+    this.tasksService.submitBatchData(this.batchRequests).subscribe((response: any) => {
+      response.forEach((responseEle: any) => {
+        if (responseEle.statusCode === '200') {
+          activatedAccounts++;
+          responseEle.body = JSON.parse(responseEle.body);
+          if (selectedAccounts === activatedAccounts) {
+            this.reload();
+          }
+        }
+      });
+    });
+  }
+
+  applyFilter(filterValue: string = '') {
+    const normalizedFilter = filterValue.trim().toLowerCase();
+    Object.values(this.groupedClientDataSources).forEach((dataSource) => {
+      dataSource.filter = normalizedFilter;
+      dataSource.paginator?.firstPage();
+    });
+  }
+
+  /**
+   * Refetches data for the component
+   * TODO: Replace by a custom reload component instead of hard-coded back-routing.
+   */
+  reload() {
+    const url: string = this.router.url;
+    this.router
+      .navigateByUrl(`/checker-inbox-and-tasks`, { skipLocationChange: true })
+      .then(() => this.router.navigate([url]));
+  }
+
+  private bindPaginators() {
+    const paginatorList = this.paginators?.toArray() ?? [];
+    this.groupedClientEntries.forEach((entry, index) => {
+      const dataSource = this.groupedClientDataSources[entry.key];
+      if (dataSource) {
+        dataSource.paginator = paginatorList[index];
+      }
+    });
+  }
+}

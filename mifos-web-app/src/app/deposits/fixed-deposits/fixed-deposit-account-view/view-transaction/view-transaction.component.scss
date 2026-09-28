@@ -1,0 +1,44 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+@use 'assets/styles/helper';
+@use 'assets/styles/colours' as *;
+
+.container {
+  max-width: 37rem;
+
+  .content {
+    div {
+      margin: 1rem 0;
+      overflow-wrap: break-word;
+    }
+  }
+}
+
+.transaction-buttons {
+  margin-top: 3%;
+}
+
+.transaction-relation {
+  background-color: $mid-grey;
+}
+
+.active {
+  background-color: $status-active;
+  height: 4px;
+}
+
+.linked {
+  background-color: $status-approved;
+  height: 4px;
+}
+
+.undo {
+  background-color: $status-active-overdue;
+  height: 4px;
+}

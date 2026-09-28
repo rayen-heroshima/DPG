@@ -1,0 +1,164 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnChanges, Input, inject } from '@angular/core';
+
+/** Custom Services */
+import { ReportsService } from '../../reports.service';
+
+/** Custom Models */
+import { ChartData } from '../../common-models/chart-data.model';
+
+/** Charting Imports */
+import { Chart, registerables } from 'chart.js';
+import { MatButtonToggleGroup, MatButtonToggle } from '@angular/material/button-toggle';
+import { NgStyle } from '@angular/common';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+// Register Chart.js components
+Chart.register(...registerables);
+
+/**
+ * Chart Component
+ */
+@Component({
+  selector: 'mifosx-chart',
+  templateUrl: './chart.component.html',
+  styleUrls: ['./chart.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatButtonToggleGroup,
+    MatButtonToggle,
+    NgStyle
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ChartComponent implements OnChanges {
+  private reportsService = inject(ReportsService);
+
+  /** Run Report Data */
+  @Input() dataObject: any;
+
+  /** chart data object */
+  chart: any;
+  /** substitute for resolver */
+  hideOutput = true;
+  /** Data object for witching charts in view. */
+  inputData: ChartData;
+
+  /**
+   * Fetches run report data post changes in run report form.
+   */
+  ngOnChanges() {
+    this.getRunReportData();
+  }
+
+  getRunReportData() {
+    this.reportsService
+      .getChartRunReportData(this.dataObject.report.name, this.dataObject.formData)
+      .subscribe((response: ChartData) => {
+        this.inputData = response;
+        this.setPieChart(this.inputData);
+        this.hideOutput = false;
+      });
+  }
+
+  /**
+   * Creates instance of chart.js pie chart.
+   * Refer: https://www.chartjs.org/docs/latest/charts/doughnut.html for configuration details.
+   */
+  setPieChart(inputData: ChartData) {
+    if (this.chart) {
+      this.chart.destroy();
+    }
+    this.chart = new Chart('output', {
+      type: 'pie',
+      data: {
+        labels: inputData.keys,
+        datasets: [
+          {
+            label: inputData.valuesLabel,
+            data: inputData.values,
+            backgroundColor: this.randomColorArray(inputData.values.length)
+          }
+        ]
+      },
+      options: {
+        plugins: {
+          title: {
+            display: true,
+            text: inputData.keysLabel
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * Creates instance of chart.js bar chart.
+   * Refer: https://www.chartjs.org/docs/latest/charts/bar.html for configuration details.
+   */
+  setBarChart(inputData: ChartData) {
+    if (this.chart) {
+      this.chart.destroy();
+    }
+    this.chart = new Chart('output', {
+      type: 'bar',
+      data: {
+        labels: inputData.keys,
+        datasets: [
+          {
+            label: inputData.valuesLabel,
+            data: inputData.values,
+            backgroundColor: this.randomColorArray(inputData.values.length)
+          }
+        ]
+      },
+      options: {
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: inputData.keysLabel
+            }
+          },
+          y: {
+            min: 0
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * Generates bar/pie-slice colors array for dynamic charts.
+   * @param {number} length Length of dataset array.
+   */
+  randomColorArray(length: number) {
+    const colorArray: any[] = [];
+    while (length--) {
+      const color = this.randomColor();
+      colorArray.push(color);
+    }
+    return colorArray;
+  }
+
+  /**
+   * Returns a random rgb color.
+   */
+  randomColor() {
+    const r = Math.floor(Math.random() * 255);
+    const g = Math.floor(Math.random() * 255);
+    const b = Math.floor(Math.random() * 255);
+    return `rgb(${r},${g},${b},0.6)`;
+  }
+}

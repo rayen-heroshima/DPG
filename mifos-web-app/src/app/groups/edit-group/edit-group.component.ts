@@ -1,0 +1,152 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import {
+  UntypedFormGroup,
+  UntypedFormBuilder,
+  UntypedFormControl,
+  Validators,
+  ReactiveFormsModule
+} from '@angular/forms';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { GroupsService } from '../groups.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { Dates } from 'app/core/utils/dates';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Edit Group component.
+ */
+@Component({
+  selector: 'mifosx-edit-group',
+  templateUrl: './edit-group.component.html',
+  styleUrls: ['./edit-group.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EditGroupComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private groupService = inject(GroupsService);
+  private dateUtils = inject(Dates);
+  private settingsService = inject(SettingsService);
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum date allowed. */
+  maxDate = new Date();
+  /** Edit Group form. */
+  editGroupForm: UntypedFormGroup;
+  /** Staff data. */
+  staffData: any;
+  /** Group Data */
+  groupData: any;
+  /** Submitted On Date */
+  submittedOnDate: any;
+
+  /**
+   * Retrieves the offices data from `resolve`.
+   * @param {FormBuilder} formBuilder Form Builder.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Router} router Router for navigation.
+   * @param {GroupsService} groupService GroupsService.
+   * @param {Dates} dateUtils Date Utils to format date.
+   * @param {SettingsService} settingsService SettingsService
+   */
+  constructor() {
+    this.route.data.subscribe((data: { groupAndTemplateData: any; groupViewData: any }) => {
+      this.staffData = data.groupAndTemplateData.staffOptions;
+      this.groupData = data.groupAndTemplateData;
+      this.submittedOnDate =
+        data.groupViewData.timeline.submittedOnDate && new Date(data.groupViewData.timeline.submittedOnDate);
+    });
+  }
+
+  /**
+   * Creates and sets the edit group form.
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.createEditGroupForm();
+    this.editGroupForm.patchValue({
+      name: this.groupData.name,
+      submittedOnDate: this.submittedOnDate,
+      staffId: this.groupData.staffId,
+      externalId: this.groupData.externalId
+    });
+  }
+
+  /**
+   * Creates the edit group form.
+   */
+  createEditGroupForm() {
+    this.editGroupForm = this.formBuilder.group({
+      name: [
+        '',
+        [
+          Validators.required,
+          Validators.pattern('(^[A-Za-z]).*')
+        ]
+      ],
+      submittedOnDate: [
+        '',
+        Validators.required
+      ],
+      staffId: [''],
+      externalId: ['']
+    });
+    this.buildDependencies();
+  }
+
+  /**
+   * Adds form control Activation Date if group is active.
+   */
+  buildDependencies() {
+    if (this.groupData.active) {
+      this.editGroupForm.addControl('activationDate', new UntypedFormControl('', Validators.required));
+      this.editGroupForm
+        .get('activationDate')
+        .patchValue(this.groupData.activationDate && new Date(this.groupData.activationDate));
+    } else {
+      this.editGroupForm.removeControl('activationDate');
+    }
+  }
+
+  /**
+   * Submits the group form and edits group,
+   * if successful redirects to groups.
+   */
+  submit() {
+    const editGroupFormData = this.editGroupForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const submittedOnDate: Date = this.editGroupForm.value.submittedOnDate;
+    const activationDate: Date = this.editGroupForm.value.activationDate;
+    if (editGroupFormData.submittedOnDate instanceof Date) {
+      editGroupFormData.submittedOnDate = this.dateUtils.formatDate(submittedOnDate, dateFormat);
+    }
+    if (editGroupFormData.activationDate instanceof Date) {
+      editGroupFormData.activationDate = this.dateUtils.formatDate(activationDate, dateFormat);
+    }
+    const data = {
+      ...editGroupFormData,
+      dateFormat,
+      locale
+    };
+    this.groupService.updateGroup(data, this.groupData.id).subscribe((response: any) => {
+      this.router.navigate(['../'], { relativeTo: this.route });
+    });
+  }
+}

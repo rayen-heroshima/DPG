@@ -1,0 +1,192 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, ViewChild, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { take } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
+import { MatPaginator } from '@angular/material/paginator';
+import { MatSort, MatSortHeader } from '@angular/material/sort';
+import {
+  MatTableDataSource,
+  MatTable,
+  MatColumnDef,
+  MatHeaderCellDef,
+  MatHeaderCell,
+  MatCellDef,
+  MatCell,
+  MatHeaderRowDef,
+  MatHeaderRow,
+  MatRowDef,
+  MatRow
+} from '@angular/material/table';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { OrganizationService } from '../organization.service';
+
+/** Custom Components */
+import { DeleteDialogComponent } from '../../shared/delete-dialog/delete-dialog.component';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { MatTooltip } from '@angular/material/tooltip';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Entity Data Table Checks component.
+ */
+@Component({
+  selector: 'mifosx-entity-data-table-checks',
+  templateUrl: './entity-data-table-checks.component.html',
+  styleUrls: ['./entity-data-table-checks.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    FaIconComponent,
+    MatTable,
+    MatSort,
+    MatColumnDef,
+    MatHeaderCellDef,
+    MatHeaderCell,
+    MatSortHeader,
+    MatCellDef,
+    MatCell,
+    MatTooltip,
+    MatHeaderRowDef,
+    MatHeaderRow,
+    MatRowDef,
+    MatRow,
+    MatPaginator
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EntityDataTableChecksComponent implements OnInit {
+  private organizationService = inject(OrganizationService);
+  private route = inject(ActivatedRoute);
+  private dialog = inject(MatDialog);
+  private destroyRef = inject(DestroyRef);
+
+  /** Entity Data Table Checks data. */
+  entityDataTableChecksData: any;
+  /** Columns to be displayed in entity data table checks table. */
+  displayedColumns: string[] = [
+    'entity',
+    'productName',
+    'datatableName',
+    'status',
+    'systemDefined',
+    'actions'
+  ];
+  /** Data source for entity data table checks table. */
+  dataSource: MatTableDataSource<any>;
+  /** Corresponding values for Entity */
+  entityValues: any = [
+    {
+      code: 'm_client',
+      value: 'Client'
+    },
+    {
+      code: 'm_loan',
+      value: 'Loan'
+    },
+    {
+      code: 'm_group',
+      value: 'Group'
+    },
+    {
+      code: 'm_savings_account',
+      value: 'Savings Account'
+    }
+  ];
+
+  /** Paginator for entity data table checks table. */
+  @ViewChild(MatPaginator, { static: true }) paginator: MatPaginator;
+  /** Sorter for entity data table checks table. */
+  @ViewChild(MatSort, { static: true }) sort: MatSort;
+
+  /**
+   * Retrieves the entity data table checks data from `resolve`.
+   * @param {OrganizationService} organizationService Organization Service.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {MatDialog} dialog Dialog reference.
+   */
+  constructor() {
+    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data: { entityDataTableChecks: any }) => {
+      this.entityDataTableChecksData = data.entityDataTableChecks.pageItems;
+    });
+  }
+
+  /**
+   * Filters data in entity data table checks table based on passed value.
+   * @param {string} filterValue Value to filter data.
+   */
+  applyFilter(filterValue: string) {
+    this.dataSource.filter = filterValue.trim().toLowerCase();
+  }
+
+  /**
+   * Sets the entity data table checks table.
+   */
+  ngOnInit() {
+    this.setEntityDataTableChecks();
+    this.setEntity();
+  }
+
+  setEntity() {
+    const entityMap = new Map<string, string>();
+    this.entityValues.forEach((entity: any) => {
+      entityMap.set(entity.code, entity.value);
+    });
+
+    this.dataSource.data.forEach((item: any) => {
+      const entityValue = entityMap.get(item.entity);
+      if (entityValue) {
+        item.entity = entityValue;
+      }
+    });
+  }
+
+  /**
+   * Initializes the data source, paginator and sorter for entity data table checks table.
+   */
+  setEntityDataTableChecks() {
+    this.dataSource = new MatTableDataSource(this.entityDataTableChecksData);
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+    this.dataSource.sortingDataAccessor = (item, property) => {
+      switch (property) {
+        case 'status':
+          return item.status.value;
+        default:
+          return item[property];
+      }
+    };
+  }
+
+  /**
+   * Deletes the entity data table check
+   * @param {string} entityDataTableCheckId Entity Data Table Check ID of entity data table check to be deleted.
+   */
+  deleteEntityDataTableCheck(entityDataTableCheckId: string) {
+    const deleteEntityDataTableCheckDialogRef = this.dialog.open(DeleteDialogComponent, {
+      data: { deleteContext: `entity data table check ${entityDataTableCheckId}` }
+    });
+    deleteEntityDataTableCheckDialogRef.afterClosed().subscribe((response: any) => {
+      if (response.delete) {
+        this.organizationService
+          .deleteEntityDataTableCheck(entityDataTableCheckId)
+          .pipe(take(1))
+          .subscribe(() => {
+            this.entityDataTableChecksData = this.entityDataTableChecksData.filter(
+              (entityDataTableChecks: any) => entityDataTableChecks.id !== entityDataTableCheckId
+            );
+            this.dataSource.data = this.entityDataTableChecksData;
+          });
+      }
+    });
+  }
+}

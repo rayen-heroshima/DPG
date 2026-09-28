@@ -1,0 +1,62 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { Router } from '@angular/router';
+import { ProductsService } from 'app/products/products.service';
+import { DeleteDialogComponent } from 'app/shared/delete-dialog/delete-dialog.component';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+import { DelinquencyBucketBaseComponent } from '../../delinquency-base.component';
+import { FormatNumberPipe } from '@pipes/format-number.pipe';
+
+@Component({
+  selector: 'mifosx-view-bucket',
+  templateUrl: './view-bucket.component.html',
+  styleUrls: ['./view-bucket.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    FaIconComponent,
+    FormatNumberPipe
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ViewBucketComponent extends DelinquencyBucketBaseComponent {
+  private router = inject(Router);
+  private dialog = inject(MatDialog);
+  private productsService = inject(ProductsService);
+
+  /** Delinquency Bucket Data. */
+  delinquencyBucketData: any;
+
+  constructor() {
+    super();
+    this.route.data.subscribe((data: { delinquencyBucket: any }) => {
+      this.delinquencyBucketData = data.delinquencyBucket;
+      if (this.isRegularBucket) {
+        this.delinquencyBucketData.ranges = this.delinquencyBucketData.ranges.sort(
+          (objA: { minimumAge: number }, objB: { minimumAge: number }) => objA.minimumAge - objB.minimumAge
+        );
+      }
+    });
+  }
+
+  deleteDelinquencyBucket() {
+    const dialogRef = this.dialog.open(DeleteDialogComponent, {
+      data: { deleteContext: this.delinquencyBucketData.name }
+    });
+    dialogRef.afterClosed().subscribe((response: any) => {
+      if (response.delete) {
+        this.productsService.deleteDelinquencyBucket(this.delinquencyBucketData.id).subscribe(() => {
+          this.router.navigate(['../'], { relativeTo: this.route });
+        });
+      }
+    });
+  }
+}

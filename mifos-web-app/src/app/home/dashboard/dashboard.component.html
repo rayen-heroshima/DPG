@@ -1,0 +1,27 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container">
+  <mat-tab-group animationDuration="0ms">
+    <mat-tab label="{{ 'labels.heading.Dashboard' | translate }}">
+      <div class="dashboard-layout">
+        <mifosx-analytics-dashboard
+          [dashboard]="dashboardDefinition"
+          [offices]="offices"
+          [products]="products"
+          [clientGroups]="clientGroups"
+        ></mifosx-analytics-dashboard>
+      </div>
+    </mat-tab>
+    <mat-tab label="{{ 'labels.heading.Onboarding Board' | translate }}">
+      <ng-template matTabContent>
+        <mifosx-onboarding-board></mifosx-onboarding-board>
+      </ng-template>
+    </mat-tab>
+  </mat-tab-group>
+</div>

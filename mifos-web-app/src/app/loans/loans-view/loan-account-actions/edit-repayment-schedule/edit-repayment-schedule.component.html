@@ -1,0 +1,47 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container mat-elevation-z8">
+  <mat-card>
+    <mat-card-content>
+      <div class="m-b-10 layout-column">
+        @if (repaymentScheduleDetails) {
+          <mifosx-repayment-schedule-tab
+            class="flex-100"
+            [repaymentScheduleDetails]="repaymentScheduleDetails"
+            [forEditing]="true"
+            (editPeriod)="onInstallmentEdited($event)"
+            (deletePeriod)="onInstallmentDeleteToggled($event)"
+          >
+          </mifosx-repayment-schedule-tab>
+        }
+      </div>
+
+      <mat-card-actions class="layout-row align-center gap-5px responsive-column">
+        @if (pendingChangesCount > 0) {
+          <span class="pending-changes"
+            >{{ 'labels.text.Pending changes' | translate }}: {{ pendingChangesCount }}</span
+          >
+        }
+        <button type="button" mat-raised-button (click)="cancel()">
+          {{ 'labels.buttons.Cancel' | translate }}
+        </button>
+        <button type="button" mat-raised-button (click)="reset()">{{ 'labels.buttons.Reset' | translate }}</button>
+        <button type="button" color="primary" mat-raised-button (click)="applyPattern()">
+          {{ 'labels.buttons.Pattern' | translate }}
+        </button>
+        <button type="button" color="primary" mat-raised-button [disabled]="!wasChanged" (click)="validate()">
+          {{ 'labels.buttons.Validate' | translate }}
+        </button>
+        <button type="button" color="primary" mat-raised-button [disabled]="!wasValidated" (click)="submit()">
+          {{ 'labels.buttons.Submit' | translate }}
+        </button>
+      </mat-card-actions>
+    </mat-card-content>
+  </mat-card>
+</div>

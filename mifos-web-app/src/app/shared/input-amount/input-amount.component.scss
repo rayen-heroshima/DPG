@@ -1,0 +1,40 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+.expandcollapsebutton {
+  margin-top: -7px;
+}
+
+.input-container {
+  width: 100%;
+}
+
+.input-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 5px;
+}
+
+.container {
+  max-width: 37rem;
+}
+
+.right-input {
+  text-align: right;
+}
+
+.right-label {
+  padding-right: 25px !important;
+}
+
+.right-hint {
+  min-width: 100%;
+  text-align: right;
+  font-weight: 500;
+}

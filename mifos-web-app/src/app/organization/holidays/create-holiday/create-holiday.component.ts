@@ -1,0 +1,392 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports. */
+import { SelectionModel } from '@angular/cdk/collections';
+import { ChangeDetectionStrategy, Component, OnInit, ViewChild, Injectable, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormBuilder, FormGroup, Validators, FormControl, ReactiveFormsModule } from '@angular/forms';
+import { take } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Dates } from 'app/core/utils/dates';
+import {
+  MatTreeFlatDataSource,
+  MatTreeFlattener,
+  MatTree,
+  MatTreeNodeDef,
+  MatTreeNode,
+  MatTreeNodeToggle,
+  MatTreeNodePadding
+} from '@angular/material/tree';
+import { FlatTreeControl } from '@angular/cdk/tree';
+
+/** Custom Services. */
+import { OrganizationService } from 'app/organization/organization.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { OfficeItemNode } from './office-item.class';
+import { OfficeItemFlatNode } from './office-flat-item.class';
+import { ChecklistDatabase } from './checklist-db.class';
+import { CreateHoliday } from './create-holiday.service';
+import { MatIconButton, MatButton } from '@angular/material/button';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MatIcon } from '@angular/material/icon';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Create Holiday component.
+ */
+@Component({
+  selector: 'mifosx-create-holiday',
+  templateUrl: './create-holiday.component.html',
+  styleUrls: ['./create-holiday.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatTree,
+    MatTreeNodeDef,
+    MatTreeNode,
+    MatTreeNodeToggle,
+    MatTreeNodePadding,
+    MatIconButton,
+    MatCheckbox,
+    MatIcon
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class CreateHolidayComponent implements OnInit {
+  private formBuilder = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
+  private destroyRef = inject(DestroyRef);
+  private dateUtils = inject(Dates);
+  private organizationService = inject(OrganizationService);
+  private settings = inject(SettingsService);
+  private router = inject(Router);
+  private _database = inject(ChecklistDatabase);
+  private createHoliday = inject(CreateHoliday);
+
+  /** Create Holiday form. */
+  holidayForm: FormGroup;
+  /** Repayment Scheduling data. */
+  repaymentSchedulingTypes: any;
+  /** Offices Data */
+  officesData: any;
+  /** Minimum Date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum Date allowed. */
+  maxDate = new Date(2100, 0, 1);
+  // Stores office data in a trie-like structure
+  officesTrie: any;
+  // Stores office data for access from DOM via Office ID
+  officesDict: { [key: string]: any } = {};
+
+  // Angular Material Tree Configuration start ------------
+
+  /** Map from flat node to nested node. This helps us finding the nested node to be modified */
+  flatNodeMap = new Map<OfficeItemFlatNode, OfficeItemNode>();
+
+  /** Map from nested node to flattened node. This helps us to keep the same object for selection */
+  nestedNodeMap = new Map<OfficeItemNode, OfficeItemFlatNode>();
+
+  /** A selected parent node to be inserted */
+  selectedParent: OfficeItemFlatNode | null = null;
+
+  /** The new item's name */
+  newItemName = '';
+
+  treeControl: FlatTreeControl<OfficeItemFlatNode>;
+
+  treeFlattener: MatTreeFlattener<OfficeItemNode, OfficeItemFlatNode>;
+
+  dataSource: MatTreeFlatDataSource<OfficeItemNode, OfficeItemFlatNode>;
+
+  /** The selection for checklist */
+  checklistSelection = new SelectionModel<OfficeItemFlatNode>(true /* multiple */);
+
+  // Angular Material Tree Configuration end ------------
+
+  /**
+   * Get offices and holiday template from `Resolver`.
+   * @param {FormBuilder} formBuilder Form Builder.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Dates} dateUtils Date Utils.
+   * @param {OrganizationService} organizationService Organization Service.
+   * @param {Router} router Router.
+   */
+  constructor() {
+    const _database = this._database;
+
+    this.route.data
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((data: { offices: any; holidayTemplate: any }) => {
+        this.officesData = data.offices;
+        this.repaymentSchedulingTypes = data.holidayTemplate;
+        // Constructs trie everytime data changes
+        this.constructOfficeHierarchy();
+        // Updates data in the CheckListDatabase
+        _database.initialize(this.officesTrie);
+      });
+    this.treeFlattener = new MatTreeFlattener(this.transformer, this.getLevel, this.isExpandable, this.getChildren);
+    this.treeControl = new FlatTreeControl<OfficeItemFlatNode>(this.getLevel, this.isExpandable);
+    this.dataSource = new MatTreeFlatDataSource(this.treeControl, this.treeFlattener);
+
+    // Listens for changes in CheckListDatabase
+    this._database.dataChange.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data) => {
+      this.dataSource.data = data;
+    });
+  }
+  constructOfficeHierarchy() {
+    const trie: Record<string, any> = {};
+    // Iterates over all the offices
+    this.officesData.forEach((office: any) => {
+      this.officesDict[office.id] = office;
+
+      let hierarchy = office.hierarchy.split('.');
+
+      // Removes empty strings
+      hierarchy = hierarchy.filter((stage: any) => {
+        return stage.length > 0;
+      });
+
+      // Temporary variable to store current object
+
+      let root: Record<string, any> = trie;
+
+      if (hierarchy.length === 0) {
+        root[office.id] = {};
+      } else {
+        // Sets root as the first object
+        root = trie[Object.keys(trie)[0]];
+        // Construction of hierarchy via Depth First Search
+        hierarchy.forEach((stage: string) => {
+          if (!(stage in root)) {
+            root[stage] = {};
+          }
+          root = root[stage];
+        });
+      }
+    });
+
+    // Sets leaf offices to null as per the requirement of Angular Material
+    this.createHoliday.setEmptyObjectsToNull(trie);
+
+    this.officesTrie = trie;
+  }
+
+  // angular material tree config start ----------------------
+
+  getLevel = (node: OfficeItemFlatNode) => node.level;
+
+  isExpandable = (node: OfficeItemFlatNode) => node.expandable;
+
+  getChildren = (node: OfficeItemNode): OfficeItemNode[] => node.children;
+
+  hasChild = (_: number, _nodeData: OfficeItemFlatNode) => _nodeData.expandable;
+
+  hasNoContent = (_: number, _nodeData: OfficeItemFlatNode) => _nodeData.item === '';
+
+  /**
+   * Transformer to convert nested node to flat node. Record the nodes in maps for later use.
+   */
+  transformer = (node: OfficeItemNode, level: number) => {
+    const existingNode = this.nestedNodeMap.get(node);
+    const flatNode = existingNode && existingNode.item === node.item ? existingNode : new OfficeItemFlatNode();
+    flatNode.item = node.item;
+    flatNode.level = level;
+    flatNode.expandable = !!node.children?.length;
+    this.flatNodeMap.set(flatNode, node);
+    this.nestedNodeMap.set(node, flatNode);
+    return flatNode;
+  };
+
+  /** Whether all the descendants of the node are selected. */
+  descendantsAllSelected(node: OfficeItemFlatNode): boolean {
+    return this.checklistSelection.isSelected(node);
+  }
+
+  /** Whether part of the descendants are selected */
+  descendantsPartiallySelected(node: OfficeItemFlatNode): boolean {
+    const descendants = this.treeControl.getDescendants(node);
+    const result = descendants.some((child) => this.checklistSelection.isSelected(child));
+    return result && !this.descendantsAllSelected(node);
+  }
+
+  setSelectedOffices() {
+    this.holidayForm.patchValue({
+      offices: this.checklistSelection.selected.map((item) => item.item)
+    });
+  }
+
+  /** Toggle the to-do item selection. Select/deselect all the descendants node */
+  officeItemSelectionToggle(node: OfficeItemFlatNode): void {
+    this.checklistSelection.toggle(node);
+    const descendants = this.treeControl.getDescendants(node);
+    this.checklistSelection.isSelected(node)
+      ? this.checklistSelection.select(...descendants)
+      : this.checklistSelection.deselect(...descendants);
+
+    // Force update for the parent
+    descendants.forEach((child) => this.checklistSelection.isSelected(child));
+    this.setSelectedOffices();
+  }
+
+  /** Toggle a leaf to-do item selection. Check all the parents to see if they changed */
+  officeLeafItemSelectionToggle(node: OfficeItemFlatNode): void {
+    this.checklistSelection.toggle(node);
+    this.setSelectedOffices();
+  }
+
+  /* Checks all the parents when a leaf node is selected/unselected */
+  checkAllParentsSelection(node: OfficeItemFlatNode): void {
+    let parent: OfficeItemFlatNode | null = this.getParentNode(node);
+    while (parent) {
+      this.checkRootNodeSelection(parent);
+      parent = this.getParentNode(parent);
+    }
+  }
+
+  /** Check root node checked state and change it accordingly */
+  checkRootNodeSelection(node: OfficeItemFlatNode): void {
+    const nodeSelected = this.checklistSelection.isSelected(node);
+    const descendants = this.treeControl.getDescendants(node);
+    const descAllSelected =
+      descendants.length > 0 &&
+      descendants.every((child) => {
+        return this.checklistSelection.isSelected(child);
+      });
+    if (nodeSelected && !descAllSelected) {
+      this.checklistSelection.deselect(node);
+    } else if (!nodeSelected && descAllSelected) {
+      this.checklistSelection.select(node);
+    }
+  }
+
+  /* Get the parent node of a node */
+  getParentNode(node: OfficeItemFlatNode): OfficeItemFlatNode | null {
+    const currentLevel = this.getLevel(node);
+
+    if (currentLevel < 1) {
+      return null;
+    }
+
+    const startIndex = this.treeControl.dataNodes.indexOf(node) - 1;
+
+    for (let i = startIndex; i >= 0; i--) {
+      const currentNode = this.treeControl.dataNodes[i];
+
+      if (this.getLevel(currentNode) < currentLevel) {
+        return currentNode;
+      }
+    }
+    return null;
+  }
+
+  // angular material tree config end ----------------------
+
+  ngOnInit() {
+    this.setHolidayForm();
+    this.buildDependencies();
+  }
+
+  /**
+   * Sets Holiday Form.
+   */
+  setHolidayForm() {
+    this.holidayForm = this.formBuilder.group({
+      name: [
+        '',
+        Validators.required
+      ],
+      fromDate: [
+        '',
+        Validators.required
+      ],
+      toDate: [
+        '',
+        Validators.required
+      ],
+      reschedulingType: [
+        '',
+        Validators.required
+      ],
+      description: [''],
+      offices: [
+        '',
+        Validators.required
+      ]
+    });
+  }
+
+  /**
+   * Sets the conditional controls.
+   */
+  buildDependencies() {
+    this.holidayForm
+      .get('reschedulingType')
+      .valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((option: any) => {
+        if (option === 2) {
+          this.holidayForm.addControl('repaymentsRescheduledTo', new FormControl('', Validators.required));
+        } else {
+          this.holidayForm.removeControl('repaymentsRescheduledTo');
+        }
+      });
+  }
+
+  /**
+   * Submits the create holiday Form.
+   */
+  submit() {
+    const holidayFormData = this.holidayForm.value;
+    const dateFormat = this.settings.dateFormat;
+    const locale = this.settings.language.code;
+    const momentFormat = 'DD MMMM YYYY';
+    const coerceDate = (value: unknown): Date | null => {
+      if (value instanceof Date) return value;
+      if (value == null || value === '') return null;
+      const d = new Date(value as any);
+      return Number.isNaN(d.getTime()) ? null : d;
+    };
+    const fromDate = coerceDate(this.holidayForm.value.fromDate);
+    const toDate = coerceDate(this.holidayForm.value.toDate);
+    if (!fromDate || !toDate) {
+      return;
+    }
+    holidayFormData.fromDate = this.dateUtils.formatDateAsString(fromDate, momentFormat);
+    holidayFormData.toDate = this.dateUtils.formatDateAsString(toDate, momentFormat);
+    if (this.holidayForm.contains('repaymentsRescheduledTo')) {
+      const repaymentsRescheduledTo = coerceDate(this.holidayForm.value.repaymentsRescheduledTo);
+      if (!repaymentsRescheduledTo) {
+        return;
+      }
+      holidayFormData.repaymentsRescheduledTo = this.dateUtils.formatDateAsString(
+        repaymentsRescheduledTo,
+        momentFormat
+      );
+    }
+    const offices = this.holidayForm.value.offices.map((office: string) => {
+      return { officeId: Number.parseInt(office, 10) };
+    });
+    const data = {
+      ...holidayFormData,
+      dateFormat,
+      locale,
+      offices
+    };
+    this.organizationService
+      .createHoliday(data)
+      .pipe(take(1))
+      .subscribe((response: any) => {
+        this.router.navigate(
+          [
+            '../',
+            response.resourceId
+          ],
+          { relativeTo: this.route }
+        );
+      });
+  }
+}

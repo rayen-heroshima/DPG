@@ -1,0 +1,87 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators } from '@angular/forms';
+
+/** Custom Services */
+import { Dates } from 'app/core/utils/dates';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+import { LoanAccountActionsBaseComponent } from '../loan-account-actions-base.component';
+
+/**
+ * Withdrawn By Applicant Loan Form
+ */
+@Component({
+  selector: 'mifosx-withdrawn-by-client',
+  templateUrl: './withdrawn-by-client.component.html',
+  styleUrls: ['./withdrawn-by-client.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    CdkTextareaAutosize
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class WithdrawnByClientComponent extends LoanAccountActionsBaseComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private dateUtils = inject(Dates);
+
+  /** Minimum Date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum Date allowed. */
+  maxDate = new Date();
+  /** Withdrawn By Applicant Loan Form */
+  withdrawnByClientLoanForm: UntypedFormGroup;
+
+  constructor() {
+    super();
+  }
+
+  /**
+   * Creates the withdraw by Applicant loan form
+   * and initialize with the required values
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.createWithdrawnByClientLoanForm();
+  }
+
+  /**
+   * Creates the create withdraw by applicant form.
+   */
+  createWithdrawnByClientLoanForm() {
+    this.withdrawnByClientLoanForm = this.formBuilder.group({
+      withdrawnOnDate: [
+        new Date(),
+        Validators.required
+      ],
+      note: ''
+    });
+  }
+
+  /** Submits the withdraw by appplicant form */
+  submit() {
+    const withdrawnByClientLoanFormData = this.withdrawnByClientLoanForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevTransactionDate: Date = this.withdrawnByClientLoanForm.value.withdrawnOnDate;
+    if (withdrawnByClientLoanFormData.withdrawnOnDate instanceof Date) {
+      withdrawnByClientLoanFormData.withdrawnOnDate = this.dateUtils.formatDate(prevTransactionDate, dateFormat);
+    }
+    const data = {
+      ...withdrawnByClientLoanFormData,
+      dateFormat,
+      locale
+    };
+    this.loanService.loanActionButtons(this.loanId, 'withdrawnByApplicant', data).subscribe((response: any) => {
+      this.gotoLoanDefaultView();
+    });
+  }
+}

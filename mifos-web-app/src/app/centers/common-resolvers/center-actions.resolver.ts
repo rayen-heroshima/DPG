@@ -1,0 +1,53 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { Injectable, inject } from '@angular/core';
+import { ActivatedRouteSnapshot } from '@angular/router';
+
+/** rxjs Imports */
+import { Observable } from 'rxjs';
+
+/** Custom Services */
+import { CentersService } from '../centers.service';
+
+/**
+ * Group Actions data resolver.
+ */
+@Injectable()
+export class CenterActionsResolver {
+  private centersService = inject(CentersService);
+
+  /**
+   * Returns the Centers account actions data.
+   * @param {ActivatedRouteSnapshot} route Route Snapshot
+   * @returns {Observable<any>}
+   */
+  resolve(route: ActivatedRouteSnapshot): Observable<any> {
+    const actionName = route.paramMap.get('action');
+    const centerId = route.paramMap.get('centerId') || route.parent.parent.paramMap.get('centerId');
+    switch (actionName) {
+      case 'Assign Staff':
+        return this.centersService.getGroupStaffData(centerId);
+      case 'Attendance':
+        return this.centersService.getCentersData(centerId, 'groupMembers,collectionMeetingCalendar');
+      case 'Manage Groups':
+        return this.centersService.getCentersData(centerId, 'groupMembers', 'true');
+      case 'Attach Meeting':
+        return this.centersService.getCalendarTemplate(centerId);
+      case 'Edit Meeting':
+      case 'Edit Meeting Schedule':
+        const calendarId = route.queryParamMap.get('calendarId');
+        return this.centersService.getCalendarAndTemplate(centerId, calendarId);
+      case 'Staff Assignment History':
+        return this.centersService.getStaffAssignmentHistoryData('Staff Assignment History', centerId, 'default', 'en');
+      default:
+        return undefined;
+    }
+  }
+}

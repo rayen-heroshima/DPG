@@ -1,0 +1,39 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+h3,
+h4 {
+  font-weight: 500;
+}
+
+h4 {
+  margin: 1em 0;
+}
+
+mat-divider {
+  margin: 1em 0 2em;
+}
+
+.margin-v {
+  margin: 1em 0;
+}
+
+.margin-b {
+  margin: 0 0 1em;
+}
+
+.margin-t {
+  margin-top: 1em;
+}
+
+/*
+ * `.by-default` lived here with a hardcoded `rgba($status-approved, 0.7)`
+ * (1.55:1 on the dark surface), but no template in the app applies that class —
+ * it was dead. Removed rather than re-themed, which also drops this file's last
+ * dependency on the `colours` partial.
+ */

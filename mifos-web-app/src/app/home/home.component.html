@@ -1,0 +1,119 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+@if (enableGlobalDashboard) {
+  <div class="layout-row align-end gap-2px responsive-column container m-b-20">
+    <div #buttonDashboard class="in-block">
+      <button mat-raised-button color="primary" [routerLink]="['/dashboard']">
+        <fa-icon icon="tachometer-alt" class="m-r-10"></fa-icon>
+        {{ 'labels.menus.Global Financial Dashboard' | translate }}
+      </button>
+    </div>
+  </div>
+}
+
+<div class="container">
+  <mat-card>
+    <mat-card-header>
+      <mat-card-title class="title">
+        {{ 'labels.text.Welcome' | translate }} {{ username }} {{ 'labels.text.To' | translate }}
+        {{ tenant | titlecase }}!
+      </mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content #searchActivity>
+      <div class="layout-column">
+        <mat-form-field>
+          <mat-label>{{ 'labels.placeholders.Search Activity' | translate }}</mat-label>
+          <input matInput [matAutocomplete]="activitySearch" [formControl]="searchText" />
+        </mat-form-field>
+      </div>
+
+      <mat-autocomplete #activitySearch="matAutocomplete">
+        @for (activity of filteredActivities | async; track activity) {
+          <mat-option [routerLink]="activity.path">
+            <span>{{ activity.activity | translate }}</span>
+          </mat-option>
+        }
+      </mat-autocomplete>
+    </mat-card-content>
+
+    <img
+      mat-card-image
+      [src]="'assets/images/' + tenant + '_home.png'"
+      (error)="onImageMissing($event)"
+      alt="Mifos X"
+    />
+  </mat-card>
+</div>
+
+<ng-template #popoverButtons let-popover="popover" let-prev="prev" let-next="next">
+  <div class="layout-row align-end gap-2px responsive-column">
+    <button mat-raised-button color="warn" (click)="popover.close(); configurationWizardService.closeConfigWizard()">
+      {{ 'labels.buttons.Close' | translate }}
+    </button>
+    @if (prev) {
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="popover.close(); showPopover(prev.template, prev.target, 'bottom', true)"
+      >
+        {{ 'labels.buttons.Back' | translate }}
+      </button>
+    }
+    @if (next) {
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="popover.close(); showPopover(next.template, next.target, 'bottom', true)"
+      >
+        {{ 'labels.buttons.Next' | translate }}
+      </button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #templateButtonDashboard let-popover="popover">
+  <h2>{{ 'labels.heading.Dashboard' | translate }}</h2>
+  <p class="mw300">{{ 'labels.text.This will navigate the user to the dashboard component.' | translate }}</p>
+  <div class="layout-row align-end gap-2px responsive-column">
+    <button mat-raised-button color="warn" (click)="popover.close(); configurationWizardService.closeConfigWizard()">
+      {{ 'labels.buttons.Close' | translate }}
+    </button>
+    <button mat-raised-button color="primary" (click)="popover.close(); previousStep()">
+      {{ 'labels.buttons.Back' | translate }}
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="popover.close(); showPopover(templateSearchActivity, searchActivity, 'top', true)"
+    >
+      {{ 'labels.buttons.Next' | translate }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #templateSearchActivity let-popover="popover">
+  <h2>{{ 'labels.heading.Search Activity' | translate }}</h2>
+  <p class="mw300">{{ 'labels.text.This will navigate the user to the searched activity.' | translate }}</p>
+  <div class="layout-row align-end gap-2px responsive-column">
+    <button mat-raised-button color="warn" (click)="popover.close(); configurationWizardService.closeConfigWizard()">
+      {{ 'labels.buttons.Close' | translate }}
+    </button>
+    <button
+      mat-raised-button
+      color="primary"
+      (click)="popover.close(); showPopover(templateButtonDashboard, buttonDashboard, 'bottom', true)"
+    >
+      {{ 'labels.buttons.Back' | translate }}
+    </button>
+    <button mat-raised-button color="primary" (click)="popover.close(); nextStep()">
+      {{ 'labels.buttons.Next' | translate }}
+    </button>
+  </div>
+</ng-template>

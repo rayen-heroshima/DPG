@@ -1,0 +1,147 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, UntypedFormControl } from '@angular/forms';
+
+/** Custom Services */
+import { Dates } from 'app/core/utils/dates';
+import { Currency } from 'app/shared/models/general.model';
+import { InputAmountComponent } from '../../../../shared/input-amount/input-amount.component';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+import { LoanAccountActionsBaseComponent } from '../loan-account-actions-base.component';
+
+/**
+ * Loan Recovery Repayment Action
+ */
+@Component({
+  selector: 'mifosx-recovery-repayment',
+  templateUrl: './recovery-repayment.component.html',
+  styleUrls: ['./recovery-repayment.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    InputAmountComponent,
+    MatSlideToggle,
+    CdkTextareaAutosize
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class RecoveryRepaymentComponent extends LoanAccountActionsBaseComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private dateUtils = inject(Dates);
+
+  /** Payment Type Options */
+  paymentTypes: any;
+  /** Show payment details */
+  showPaymentDetails = false;
+  /** Minimum Date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum Date allowed. */
+  maxDate = new Date();
+  /** Recovery Repayment Loan Form */
+  recoveryRepaymentLoanForm: UntypedFormGroup;
+  currency: Currency | null = null;
+
+  /**
+   * @param {FormBuilder} formBuilder Form Builder.
+   * @param {LoansService} loanService Loan Service.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Router} router Router for navigation.
+   * @param {SettingsService} settingsService Settings Service
+   */
+  constructor() {
+    super();
+  }
+
+  /**
+   * Creates the recovery repayment loan form
+   * and initialize with the required values
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.createRecoveryRepaymentLoanForm();
+    this.setRecoveryRepaymentLoanDetails();
+    if (this.dataObject.currency) {
+      this.currency = this.dataObject.currency;
+    }
+  }
+
+  /**
+   * Creates the recovery repayment loan form
+   */
+  createRecoveryRepaymentLoanForm() {
+    this.recoveryRepaymentLoanForm = this.formBuilder.group({
+      transactionDate: [
+        new Date(),
+        Validators.required
+      ],
+      transactionAmount: [
+        '',
+        Validators.required
+      ],
+      externalId: [''],
+      paymentTypeId: [''],
+      note: ['']
+    });
+  }
+
+  /** Sets Recovery Payment Loan Details */
+  setRecoveryRepaymentLoanDetails() {
+    this.paymentTypes = this.dataObject.paymentTypeOptions;
+    this.recoveryRepaymentLoanForm.patchValue({
+      transactionAmount: this.dataObject.amount,
+      transactionDate: new Date(this.dataObject.date)
+    });
+  }
+
+  /**
+   * Add payment detail fields to the UI.
+   */
+  addPaymentDetails() {
+    this.showPaymentDetails = !this.showPaymentDetails;
+    if (this.showPaymentDetails) {
+      this.recoveryRepaymentLoanForm.addControl('accountNumber', new UntypedFormControl(''));
+      this.recoveryRepaymentLoanForm.addControl('checkNumber', new UntypedFormControl(''));
+      this.recoveryRepaymentLoanForm.addControl('routingCode', new UntypedFormControl(''));
+      this.recoveryRepaymentLoanForm.addControl('receiptNumber', new UntypedFormControl(''));
+      this.recoveryRepaymentLoanForm.addControl('bankNumber', new UntypedFormControl(''));
+    } else {
+      this.recoveryRepaymentLoanForm.removeControl('accountNumber');
+      this.recoveryRepaymentLoanForm.removeControl('checkNumber');
+      this.recoveryRepaymentLoanForm.removeControl('routingCode');
+      this.recoveryRepaymentLoanForm.removeControl('receiptNumber');
+      this.recoveryRepaymentLoanForm.removeControl('bankNumber');
+    }
+  }
+
+  /** Submits the recovery payment form */
+  submit() {
+    const recoveryRepaymentLoanFormData = this.recoveryRepaymentLoanForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevTransactionDate: Date = this.recoveryRepaymentLoanForm.value.transactionDate;
+    if (recoveryRepaymentLoanFormData.transactionDate instanceof Date) {
+      recoveryRepaymentLoanFormData.transactionDate = this.dateUtils.formatDate(prevTransactionDate, dateFormat);
+    }
+    const data = {
+      ...recoveryRepaymentLoanFormData,
+      dateFormat,
+      locale
+    };
+    data['transactionAmount'] = data['transactionAmount'] * 1;
+    this.loanService.submitLoanActionButton(this.loanId, data, 'recoverypayment').subscribe({
+      next: (response: any) => {
+        this.gotoLoanDefaultView();
+      },
+      error: (error) => {}
+    });
+  }
+}

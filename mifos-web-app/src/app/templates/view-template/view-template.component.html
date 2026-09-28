@@ -1,0 +1,69 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container m-b-20 layout-row align-end gap-20px">
+  <button mat-raised-button color="primary" [routerLink]="['edit']" *mifosxHasPermission="'UPDATE_TEMPLATE'">
+    <fa-icon icon="edit" class="m-r-10"></fa-icon>
+    {{ 'labels.buttons.Edit' | translate }}
+  </button>
+
+  <button mat-raised-button color="warn" (click)="delete()" *mifosxHasPermission="'DELETE_TEMPLATE'">
+    <fa-icon icon="trash" class="m-r-10"></fa-icon>
+    {{ 'labels.buttons.Delete' | translate }}
+  </button>
+</div>
+
+<div class="container">
+  <mat-card>
+    <mat-card-content>
+      <div class="layout-row-wrap">
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.name' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ templateData.name }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Entity' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ templateData.entity }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Type' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ templateData.type }}
+        </div>
+
+        <div class="flex-100 mat-body-strong text-label">
+          {{ 'labels.inputs.Text' | translate }}
+        </div>
+
+        @if (isHtml) {
+          <!-- Sandboxed: the template's own styles apply while its scripts never run -->
+          <iframe
+            #preview
+            class="flex-100 html-preview"
+            sandbox="allow-same-origin"
+            [srcdoc]="htmlPreview"
+            [title]="'labels.inputs.Text' | translate"
+            (load)="onPreviewLoad(preview)"
+          ></iframe>
+        } @else {
+          <div class="flex-100 plain-text">{{ templateData.text }}</div>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

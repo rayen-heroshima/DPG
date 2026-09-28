@@ -1,0 +1,111 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, Input, OnInit, ViewChild, inject } from '@angular/core';
+import { UntypedFormBuilder, UntypedFormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
+import { ClientsService } from 'app/clients/clients.service';
+import { GroupsService } from 'app/groups/groups.service';
+import { LoansService } from 'app/loans/loans.service';
+import { SavingsService } from 'app/savings/savings.service';
+import { DeleteDialogComponent } from 'app/shared/delete-dialog/delete-dialog.component';
+import { FormDialogComponent } from 'app/shared/form-dialog/form-dialog.component';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { DateFormatPipe } from '../../../pipes/date-format.pipe';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+import { TranslateService } from '@ngx-translate/core';
+
+@Component({
+  selector: 'mifosx-entity-notes-tab',
+  templateUrl: './entity-notes-tab.component.html',
+  styleUrls: ['./entity-notes-tab.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    CdkTextareaAutosize,
+    FaIconComponent,
+    DateFormatPipe
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EntityNotesTabComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private savingsService = inject(SavingsService);
+  private loansService = inject(LoansService);
+  private clientsService = inject(ClientsService);
+  private groupsService = inject(GroupsService);
+  private dialog = inject(MatDialog);
+  private translateService = inject(TranslateService);
+
+  @ViewChild('formRef', { static: true }) formRef: any;
+
+  @Input() entityId: string;
+  @Input() entityNotes: any;
+
+  @Input() callbackAdd: (note: any) => void;
+  @Input() callbackEdit: (noteId: string, note: string, index: number) => void;
+  @Input() callbackDelete: (noteId: string, index: number) => void;
+
+  noteForm: UntypedFormGroup;
+
+  ngOnInit() {
+    this.createNoteForm();
+  }
+
+  createNoteForm() {
+    this.noteForm = this.formBuilder.group({
+      note: [
+        '',
+        Validators.required
+      ]
+    });
+  }
+
+  addNote() {
+    this.callbackAdd(this.noteForm.value);
+    this.formRef.resetForm();
+  }
+
+  editNote(noteId: string, noteContent: string, index: number) {
+    const editNoteDialogRef = this.dialog.open(FormDialogComponent, {
+      data: {
+        formfields: [
+          {
+            controlName: 'note',
+            required: true,
+            value: noteContent,
+            controlType: 'input',
+            label: this.translateService.instant('labels.inputs.Note')
+          }
+        ],
+        layout: {
+          columns: 1,
+          addButtonText: 'Confirm'
+        },
+        title: this.translateService.instant('labels.heading.Edit Note')
+      }
+    });
+    editNoteDialogRef.afterClosed().subscribe((response: any) => {
+      if (response.data && response.data.value.note !== noteContent) {
+        this.callbackEdit(noteId, response.data.value, index);
+      }
+    });
+  }
+
+  deleteNote(noteId: string, index: number) {
+    const noteLabel = this.translateService.instant('labels.inputs.Note');
+    const deleteNoteDialogRef = this.dialog.open(DeleteDialogComponent, {
+      data: { deleteContext: `${noteLabel}: ${this.entityNotes[index].note}` }
+    });
+    deleteNoteDialogRef.afterClosed().subscribe((response: any) => {
+      if (response.delete) {
+        this.callbackDelete(noteId, index);
+      }
+    });
+  }
+}

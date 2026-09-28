@@ -1,0 +1,110 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+
+/** Custom Services */
+import { AuthenticationService } from '../../../core/authentication/authentication.service';
+import { GroupsService } from '../../groups.service';
+import { EntityNotesTabComponent } from '../../../shared/tabs/entity-notes-tab/entity-notes-tab.component';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/** Custom Dialogs */
+
+/**
+ * Groups Notes Tab Component.
+ */
+@Component({
+  selector: 'mifosx-notes-tab',
+  templateUrl: './notes-tab.component.html',
+  styleUrls: ['./notes-tab.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    EntityNotesTabComponent
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class NotesTabComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private authenticationService = inject(AuthenticationService);
+  private groupsService = inject(GroupsService);
+  private cdr = inject(ChangeDetectorRef);
+
+  /** Group ID */
+  entityId: string;
+  /** Username */
+  username: string;
+  /** Client Notes */
+  entityNotes: any;
+
+  /**
+   * Fetches notes data from `resolve`
+   * @param {Activated Route} route Activated Route.
+   * @param {GroupsService} groupsService Groups Service
+   * @param {AuthenticationService} authenticationService Authentication Service.
+   */
+  constructor() {
+    this.entityId = this.route.parent.snapshot.params['groupId'];
+    this.addNote = this.addNote.bind(this);
+    this.editNote = this.editNote.bind(this);
+    this.deleteNote = this.deleteNote.bind(this);
+  }
+
+  ngOnInit() {
+    const savedCredentials = this.authenticationService.getCredentials();
+    this.username = savedCredentials.username;
+    this.route.data.subscribe((data: { groupNotes: any }) => {
+      this.entityNotes = data.groupNotes;
+    });
+  }
+
+  /**
+   * Adds a new note.
+   */
+  addNote(noteContent: any) {
+    this.groupsService.createGroupNote(this.entityId, noteContent).subscribe((response: any) => {
+      this.entityNotes = [
+        ...this.entityNotes,
+        {
+          id: response.resourceId,
+          createdByUsername: this.username,
+          createdOn: new Date(),
+          note: noteContent.note
+        }
+      ];
+      this.cdr.markForCheck();
+    });
+  }
+
+  /**
+   * Edits selected note.
+   * @param {string} noteId Note Id.
+   * @param {any} noteContent Note's content.
+   */
+  editNote(noteId: string, noteContent: any, index: number) {
+    this.groupsService.editGroupNote(this.entityId, noteId, noteContent).subscribe(() => {
+      this.entityNotes = this.entityNotes.map((entityNote: any) =>
+        entityNote.id === noteId ? { ...entityNote, note: noteContent.note } : entityNote
+      );
+      this.cdr.markForCheck();
+    });
+  }
+
+  /**
+   * Delets the given note.
+   * @param {string} noteId Note Id.
+   */
+  deleteNote(noteId: string, index: number) {
+    this.groupsService.deleteGroupNote(this.entityId, noteId).subscribe(() => {
+      this.entityNotes = this.entityNotes.filter((entityNote: any) => entityNote.id !== noteId);
+      this.cdr.markForCheck();
+    });
+  }
+}

@@ -1,0 +1,25 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+@use 'assets/styles/helper';
+@use 'assets/styles/colours' as *;
+
+.not-found-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: $accent;
+  color: $white;
+}
+
+#title {
+  font-size: 160px;
+  font-weight: bolder;
+}

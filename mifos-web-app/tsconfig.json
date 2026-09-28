@@ -1,0 +1,34 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "@pipes/*": [
+        "src/app/pipes/*"
+      ],
+      "app/*": [
+        "src/app/*"
+      ]
+    },
+    "importHelpers": true,
+    "module": "es2022",
+    "esModuleInterop": true,
+    "outDir": "./dist/out-tsc",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "noImplicitAny": true,
+    "target": "ES2022",
+    "typeRoots": [
+      "node_modules/@types",
+      "src/typings.d.ts"
+    ],
+    "lib": [
+      "es2022",
+      "dom"
+    ],
+    "useDefineForClassFields": false
+  }
+}

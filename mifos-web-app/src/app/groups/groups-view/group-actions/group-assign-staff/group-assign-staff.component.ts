@@ -1,0 +1,80 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { GroupsService } from 'app/groups/groups.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Groups Assign Staff Component
+ */
+@Component({
+  selector: 'mifosx-group-assign-staff',
+  templateUrl: './group-assign-staff.component.html',
+  styleUrls: ['./group-assign-staff.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class GroupAssignStaffComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private groupsService = inject(GroupsService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
+  /** Group Assign Staff form. */
+  groupAssignStaffForm: UntypedFormGroup;
+  /** Staff Data */
+  staffData: any;
+  /** Group Data */
+  groupData: any;
+
+  /**
+   * Fetches Group Action Data from `resolve`
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {SavingsService} savingsService Savings Service
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   */
+  constructor() {
+    this.route.data.subscribe((data: { groupActionData: any }) => {
+      this.groupData = data.groupActionData;
+    });
+  }
+
+  ngOnInit() {
+    this.staffData = this.groupData.staffOptions;
+    this.createGroupAssignStaffForm();
+  }
+
+  /**
+   * Creates the group assign staff form.
+   */
+  createGroupAssignStaffForm() {
+    this.groupAssignStaffForm = this.formBuilder.group({
+      staffId: ['']
+    });
+  }
+
+  /**
+   * Submits the form and assigns staff for the group.
+   */
+  submit() {
+    this.groupsService
+      .executeGroupCommand(this.groupData.id, 'assignStaff', this.groupAssignStaffForm.value)
+      .subscribe(() => {
+        this.router.navigate(['../../'], { relativeTo: this.route });
+      });
+  }
+}

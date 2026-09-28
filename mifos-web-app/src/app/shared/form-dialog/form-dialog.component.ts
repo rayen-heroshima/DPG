@@ -1,0 +1,95 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import {
+  MatDialogRef,
+  MAT_DIALOG_DATA,
+  MatDialogTitle,
+  MatDialogContent,
+  MatDialogActions,
+  MatDialogClose
+} from '@angular/material/dialog';
+import { UntypedFormGroup, ReactiveFormsModule } from '@angular/forms';
+
+import { FormfieldBase } from './formfield/model/formfield-base';
+
+import { FormGroupService } from './form-group.service';
+import { CdkScrollable } from '@angular/cdk/scrolling';
+import { NgClass, NgTemplateOutlet } from '@angular/common';
+import { FormfieldComponent } from './formfield/formfield.component';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+const layoutGap = 2;
+
+@Component({
+  selector: 'mifosx-form-dialog',
+  templateUrl: './form-dialog.component.html',
+  styleUrls: ['./form-dialog.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatDialogTitle,
+    CdkScrollable,
+    MatDialogContent,
+    NgClass,
+    NgTemplateOutlet,
+    FormfieldComponent,
+    MatDialogActions,
+    MatDialogClose
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class FormDialogComponent implements OnInit {
+  dialogRef = inject<MatDialogRef<FormDialogComponent>>(MatDialogRef);
+  data = inject(MAT_DIALOG_DATA);
+  private formGroupService = inject(FormGroupService);
+
+  layout: {
+    columns: number;
+    columnWidth?: number;
+    flex?: number;
+    gap?: number;
+    cancelButtonText?: string;
+    addButtonText?: string;
+  } = {
+    columns: 1,
+    columnWidth: 400,
+    flex: 100,
+    cancelButtonText: 'Cancel',
+    addButtonText: 'Add'
+  };
+
+  form: UntypedFormGroup;
+  formfields: FormfieldBase[];
+  pristine: boolean;
+
+  constructor() {
+    const data = this.data;
+
+    this.dialogRef.disableClose = data.disableClose !== undefined ? data.disableClose : true;
+    this.formfields = data.formfields.sort(
+      (formfieldA: FormfieldBase, formfieldB: FormfieldBase) => formfieldA.order - formfieldB.order
+    );
+    this.pristine = data.pristine !== undefined ? data.pristine : true;
+    this.layout = { ...this.layout, ...data.layout };
+    this.layout.gap = this.layout.columns > 1 ? layoutGap : 0;
+    this.layout.flex = this.layout.flex / this.layout.columns - this.layout.gap;
+  }
+
+  ngOnInit() {
+    this.dialogRef.updateSize(`${this.layout.columnWidth * this.layout.columns}px`);
+    this.form = this.formGroupService.createFormGroup(this.formfields);
+    if (!this.pristine) {
+      this.form.markAsDirty();
+    }
+  }
+
+  getButtonTranslationKey(buttonText: string = ''): string {
+    return buttonText?.startsWith('labels.') ? buttonText : `labels.buttons.${buttonText}`;
+  }
+}

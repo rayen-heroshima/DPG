@@ -1,0 +1,83 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container">
+  <mat-card>
+    <form [formGroup]="editCenterForm" (ngSubmit)="submit()">
+      <mat-card-content>
+        <div class="layout-column">
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.name' | translate }}</mat-label>
+            <input matInput required formControlName="name" />
+            @if (editCenterForm.controls.name.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Center Name' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+            @if (editCenterForm.controls.name.hasError('pattern')) {
+              <mat-error>
+                {{ 'labels.inputs.Center Name' | translate }} <strong>{{ 'labels.inputs.cannot' | translate }}</strong>
+                {{ 'labels.inputs.begin with a special character or number' | translate }}
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.Staff' | translate }}</mat-label>
+            <mat-select formControlName="staffId">
+              @for (staff of staffs; track staff) {
+                <mat-option [value]="staff.id">
+                  {{ staff.displayName }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.External Id' | translate }}</mat-label>
+            <input matInput formControlName="externalId" />
+          </mat-form-field>
+
+          @if (centerData.status.value === 'Pending') {
+            <ng-container (click)="activatedOnDatePicker.open()">
+              <mat-form-field>
+                <mat-label>{{ 'labels.inputs.Activation Date' | translate }}</mat-label>
+                <input
+                  matInput
+                  [min]="minDate"
+                  [max]="maxDate"
+                  [matDatepicker]="activatedOnDatePicker"
+                  required
+                  formControlName="activationDate"
+                />
+                <mat-datepicker-toggle matSuffix [for]="activatedOnDatePicker"></mat-datepicker-toggle>
+                <mat-datepicker #activatedOnDatePicker></mat-datepicker>
+                @if (editCenterForm.controls.activationDate.hasError('required')) {
+                  <mat-error>
+                    {{ 'labels.inputs.Activation Date' | translate }} {{ 'labels.commons.is' | translate }}
+                    <strong>{{ 'labels.commons.required' | translate }}</strong>
+                  </mat-error>
+                }
+              </mat-form-field>
+            </ng-container>
+          }
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions class="layout-row align-center gap-5px responsive-column">
+        <button type="button" mat-raised-button [routerLink]="['../general']">
+          {{ 'labels.buttons.Cancel' | translate }}
+        </button>
+        <button mat-raised-button color="primary" [disabled]="!editCenterForm.valid">
+          {{ 'labels.buttons.Confirm' | translate }}
+        </button>
+      </mat-card-actions>
+    </form>
+  </mat-card>
+</div>

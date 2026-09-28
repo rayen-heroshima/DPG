@@ -1,0 +1,23 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+.container {
+  width: 37rem;
+  margin-top: 3%;
+  padding-bottom: 2%;
+}
+
+// Shown when the loan is closed or overpaid: the adjustment is accepted but
+// reopens the account. Styled with opacity rather than a fixed colour so it
+// reads the same in both themes.
+.adjust-warning {
+  margin: 0 0 16px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  opacity: 0.85;
+}

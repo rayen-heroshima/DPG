@@ -1,0 +1,44 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+.container {
+  padding-bottom: 15px;
+}
+
+table {
+  width: 96%;
+
+  .select-row:hover {
+    cursor: pointer;
+  }
+}
+
+.success {
+  color: #32cd32;
+}
+
+.fail {
+  color: #f44366;
+}
+
+.currently-running {
+  color: #32cd32;
+}
+
+.not-currently-running {
+  color: #f44366;
+}
+
+.errorlog {
+  color: #ffa726;
+}
+
+.suspend {
+  background: #ffa726;
+  color: #fff;
+}

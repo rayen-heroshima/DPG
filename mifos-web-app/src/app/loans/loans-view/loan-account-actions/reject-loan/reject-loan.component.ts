@@ -1,0 +1,101 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports. */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators } from '@angular/forms';
+
+/** Custom services. */
+import { Dates } from 'app/core/utils/dates';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+import { LoanAccountActionsBaseComponent } from '../loan-account-actions-base.component';
+
+/**
+ * Reject Loan component.
+ */
+@Component({
+  selector: 'mifosx-reject-loan',
+  templateUrl: './reject-loan.component.html',
+  styleUrls: ['./reject-loan.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    CdkTextareaAutosize
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class RejectLoanComponent extends LoanAccountActionsBaseComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private dateUtils = inject(Dates);
+
+  /** Reject Loan form. */
+  rejectLoanForm: UntypedFormGroup;
+  /** Minimum Date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum Date allowed. */
+  maxDate = new Date();
+
+  /**
+   * Retrieve data from `Resolver`.
+   * @param formBuilder Form Builder.
+   * @param router Router.
+   * @param route Activated Route.
+   * @param {SettingsService} settingsService Settings Service
+   */
+  constructor() {
+    super();
+  }
+
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.setRejectLoanForm();
+  }
+
+  /**
+   * Set Reject Loan form.
+   */
+  setRejectLoanForm() {
+    this.rejectLoanForm = this.formBuilder.group({
+      rejectedOnDate: [
+        new Date(),
+        Validators.required
+      ],
+      note: ['']
+    });
+  }
+
+  /**
+   * Submit Reject Loan form.
+   */
+  submit() {
+    const rejectLoanFormData = this.rejectLoanForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevRejectedOnDate = this.rejectLoanForm.value.rejectedOnDate;
+    if (rejectLoanFormData.rejectedOnDate instanceof Date) {
+      rejectLoanFormData.rejectedOnDate = this.dateUtils.formatDate(prevRejectedOnDate, dateFormat);
+    }
+    const data = {
+      ...rejectLoanFormData,
+      dateFormat,
+      locale
+    };
+    const loanCommand: string = 'reject';
+    if (this.isLoanProduct) {
+      this.loanService.loanActionButtons(this.loanId, loanCommand, data).subscribe((response: any) => {
+        this.gotoLoanDefaultView();
+      });
+    } else if (this.isWorkingCapital) {
+      this.loanService
+        .applyWorkingCapitalLoanAccountCommand(this.loanId, loanCommand, data)
+        .subscribe((response: any) => {
+          this.gotoLoanDefaultView();
+        });
+    }
+  }
+}

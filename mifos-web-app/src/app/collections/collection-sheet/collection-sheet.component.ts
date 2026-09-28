@@ -1,0 +1,158 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { CollectionsService } from '../collections.service';
+import { ActivatedRoute, Router } from '@angular/router';
+import { SettingsService } from 'app/settings/settings.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+
+import { OrganizationService } from 'app/organization/organization.service';
+import { CentersService } from 'app/centers/centers.service';
+import { GroupsService } from 'app/groups/groups.service';
+import { Dates } from 'app/core/utils/dates';
+import { CollectionSheetData, JLGGroupData, MeetingFallCenter } from '../models/collection-sheet-data.model';
+import { Logger } from 'app/core/logger/logger.service';
+
+@Component({
+  selector: 'mifosx-collection-sheet',
+  templateUrl: './collection-sheet.component.html',
+  styleUrl: './collection-sheet.component.scss',
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    FaIconComponent
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class CollectionSheetComponent implements OnInit {
+  private readonly log = new Logger('CollectionSheetComponent');
+  private formBuilder = inject(FormBuilder);
+  private centerService = inject(CentersService);
+  private collectionsService = inject(CollectionsService);
+  private organizationService = inject(OrganizationService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private settingsService = inject(SettingsService);
+  private dateUtils = inject(Dates);
+  private destroyRef = inject(DestroyRef);
+
+  /** Offices Data */
+  officesData: any;
+  /** Group Data */
+  groupsData: any = [];
+  /** Center Data */
+  centersData: any = [];
+  /** Loan Officer Data */
+  loanOfficerData: any = [];
+  /** Minimum Date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum Date allowed. */
+  maxDate = new Date();
+  /** Collection Sheet form. */
+  collectionSheetForm: FormGroup;
+
+  officeId: number | null = null;
+  meetingFallCenters: MeetingFallCenter[] | null = null;
+
+  /**
+   * Retrieves the offices data from `resolve`.
+   * @param {FormBuilder} formBuilder Form Builder.
+   * @param {OrganizationService} collectionsService Organization Service.
+   * @param {Route} route Route.
+   * @param {Dates} dateUtils Date Utils to format date.
+   * @param {Dialog} dialog Dialog component.
+   * @param {Router} router Router for navigation.
+   * @param {SettingsService} settingsService Settings Service
+   */
+  constructor() {
+    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data: { officesData: any }) => {
+      this.officesData = data.officesData;
+    });
+  }
+
+  ngOnInit() {
+    this.maxDate = this.settingsService.maxFutureDate;
+
+    this.createCollectionSheetForm();
+    this.buildDependencies();
+  }
+
+  /**
+   * Creates the Individual Collection Sheet Form
+   */
+  createCollectionSheetForm() {
+    this.collectionSheetForm = this.formBuilder.group({
+      officeId: [
+        '',
+        Validators.required
+      ],
+      meetingDate: [
+        new Date(),
+        Validators.required
+      ],
+      staffId: [
+        '',
+        Validators.required
+      ],
+      groupId: [''],
+      centerId: ['']
+    });
+  }
+
+  /**
+   * Checks for the office id value change
+   */
+  buildDependencies() {
+    this.collectionSheetForm
+      .get('officeId')
+      .valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((officeId: any) => {
+        this.officeId = officeId;
+        this.organizationService.getStaffs(officeId).subscribe((response: any) => {
+          this.loanOfficerData = response;
+        });
+        this.organizationService.getCenters(officeId).subscribe((response: any) => {
+          this.centersData = response;
+        });
+        this.organizationService.getGroups(officeId).subscribe((response: any) => {
+          this.groupsData = response;
+        });
+      });
+  }
+
+  previewCollectionSheet() {
+    const dateFormat = this.settingsService.dateFormat;
+    const locale = this.settingsService.language.code;
+    const staffId = this.collectionSheetForm.value.staffId;
+    const meetingDate = this.dateUtils.formatDate(this.collectionSheetForm.value.meetingDate, dateFormat);
+
+    this.centerService
+      .getAllMeetingFallCenters(this.officeId, staffId, meetingDate, dateFormat, locale)
+      .subscribe((response: CollectionSheetData[]) => {
+        if (response.length > 0) {
+          this.meetingFallCenters = response[0].meetingFallCenters;
+          if (this.meetingFallCenters?.length > 0) {
+            const payload = {
+              calendarId: this.meetingFallCenters[0].collectionMeetingCalendar?.calendarInstanceId,
+              transactionDate: meetingDate,
+              locale,
+              dateFormat
+            };
+            this.collectionsService
+              .generateCollectionSheetData(this.meetingFallCenters[0].id, payload)
+              .subscribe((jlgGroupData: JLGGroupData) => {
+                this.log.debug('JLG Group Data:', jlgGroupData);
+              });
+          }
+        }
+      });
+  }
+}

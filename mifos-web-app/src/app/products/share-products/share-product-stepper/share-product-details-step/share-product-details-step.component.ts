@@ -1,0 +1,70 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, OnInit, Input, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { MatTooltip } from '@angular/material/tooltip';
+import { MatStepperPrevious, MatStepperNext } from '@angular/material/stepper';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+@Component({
+  selector: 'mifosx-share-product-details-step',
+  templateUrl: './share-product-details-step.component.html',
+  styleUrls: ['./share-product-details-step.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatTooltip,
+    MatStepperPrevious,
+    FaIconComponent,
+    MatStepperNext
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ShareProductDetailsStepComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+
+  @Input() shareProductsTemplate: any;
+
+  shareProductDetailsForm: UntypedFormGroup;
+
+  constructor() {
+    this.createShareProductDetailsForm();
+  }
+
+  ngOnInit() {
+    if (this.shareProductsTemplate) {
+      this.shareProductDetailsForm.patchValue({
+        name: this.shareProductsTemplate.name,
+        shortName: this.shareProductsTemplate.shortName,
+        description: this.shareProductsTemplate.description
+      });
+    }
+  }
+
+  createShareProductDetailsForm() {
+    this.shareProductDetailsForm = this.formBuilder.group({
+      name: [
+        '',
+        Validators.required
+      ],
+      shortName: [
+        '',
+        Validators.required
+      ],
+      description: [
+        '',
+        Validators.required
+      ]
+    });
+  }
+
+  get shareProductDetails() {
+    return this.shareProductDetailsForm.value;
+  }
+}

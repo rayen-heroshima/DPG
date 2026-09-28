@@ -1,0 +1,51 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container">
+  <mat-card>
+    @if (serviceColumns.length) {
+      <div class="layout-row responsive-column gap-20px">
+        @for (column of serviceColumns; track $index) {
+          <div class="flex-50">
+            <mat-nav-list>
+              @for (service of column; track service.id) {
+                <mat-list-item [routerLink]="service.route">
+                  <mat-icon matListIcon [routerLink]="service.route">
+                    <fa-icon [icon]="service.icon" size="sm"></fa-icon>
+                  </mat-icon>
+                  <h4 matLine [routerLink]="service.route">{{ service.label | translate }}</h4>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [attr.aria-expanded]="isServiceDescriptionVisible(service.id)"
+                    [attr.aria-label]="service.label | translate"
+                    (click)="toggleServiceDescription(service.id); $event.stopPropagation()"
+                  >
+                    @if (!isServiceDescriptionVisible(service.id)) {
+                      <fa-icon icon="arrow-down" size="lg"></fa-icon>
+                    }
+                    @if (isServiceDescriptionVisible(service.id)) {
+                      <fa-icon icon="arrow-up" size="lg"></fa-icon>
+                    }
+                  </button>
+                  @if (isServiceDescriptionVisible(service.id)) {
+                    <p matLine [routerLink]="service.route">
+                      {{ service.description | translate }}
+                    </p>
+                  }
+                </mat-list-item>
+              }
+            </mat-nav-list>
+          </div>
+        }
+      </div>
+    } @else {
+      <p>{{ 'labels.text.No data found' | translate }}</p>
+    }
+  </mat-card>
+</div>

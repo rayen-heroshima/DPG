@@ -1,0 +1,17 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<mat-card class="container">
+  <div class="back-button">
+    <button type="button" color="primary" mat-raised-button [routerLink]="['../../']">
+      <fa-icon icon="arrow-left" class="m-r-10"></fa-icon>{{ 'labels.buttons.Back' | translate }}
+    </button>
+  </div>
+
+  <iframe [src]="pentahoUrl" frameborder="0" width="100%" height="600px;"></iframe>
+</mat-card>

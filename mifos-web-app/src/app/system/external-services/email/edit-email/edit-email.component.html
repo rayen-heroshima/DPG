@@ -1,0 +1,115 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container">
+  <mat-card>
+    <form [formGroup]="emailConfigurationForm" (ngSubmit)="submit()">
+      <mat-card-content>
+        <div class="layout-column">
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.Username' | translate }}</mat-label>
+            <input matInput required formControlName="username" />
+            @if (emailConfigurationForm.controls.username.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Username' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.Password' | translate }}</mat-label>
+            <input matInput required type="{{ passwordInputType }}" formControlName="password" />
+            @if (emailConfigurationForm.controls.password.value) {
+              <button
+                mat-button
+                matSuffix
+                mat-icon-button
+                (mousedown)="passwordInputType = 'text'"
+                (mouseup)="passwordInputType = 'password'"
+              >
+                @if (passwordInputType === 'password') {
+                  <fa-icon icon="eye"></fa-icon>
+                } @else {
+                  <fa-icon icon="eye-slash"></fa-icon>
+                }
+              </button>
+            }
+            @if (emailConfigurationForm.controls.password.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Password' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.Host' | translate }}</mat-label>
+            <input matInput required formControlName="host" />
+            @if (emailConfigurationForm.controls.host.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Host' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.Port' | translate }}</mat-label>
+            <input matInput type="number" required formControlName="port" />
+            @if (emailConfigurationForm.controls.port.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Port' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-checkbox labelPosition="before" formControlName="useTLS" class="margin-v flex-48">
+            {{ 'labels.inputs.Use TLS' | translate }}?
+          </mat-checkbox>
+
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.From Email' | translate }}</mat-label>
+            <input matInput type="email" required formControlName="fromEmail" />
+            @if (emailConfigurationForm.controls.fromEmail.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.From Email' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.From Name' | translate }}</mat-label>
+            <input matInput required formControlName="fromName" />
+            @if (emailConfigurationForm.controls.fromName.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.From Name' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions class="layout-row align-center gap-5px responsive-column">
+        <button type="button" mat-raised-button [routerLink]="['../']">
+          {{ 'labels.buttons.Cancel' | translate }}
+        </button>
+        <button
+          mat-raised-button
+          color="primary"
+          [disabled]="!emailConfigurationForm.valid || emailConfigurationForm.pristine"
+        >
+          {{ 'labels.buttons.Submit' | translate }}
+        </button>
+      </mat-card-actions>
+    </form>
+  </mat-card>
+</div>

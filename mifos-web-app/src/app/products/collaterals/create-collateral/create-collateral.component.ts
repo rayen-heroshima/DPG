@@ -1,0 +1,119 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { OrganizationService } from 'app/organization/organization.service';
+import { UntypedFormGroup, UntypedFormBuilder, Validators } from '@angular/forms';
+import { Router, ActivatedRoute } from '@angular/router';
+
+/** Custom Services */
+import { ProductsService } from '../../products.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Create Collateral component.
+ */
+@Component({
+  selector: 'mifosx-create-collateral',
+  templateUrl: './create-collateral.component.html',
+  styleUrls: ['./create-collateral.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class CreateCollateralComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private productsService = inject(ProductsService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private settingsService = inject(SettingsService);
+  private organizationService = inject(OrganizationService);
+
+  /** Collateral form */
+  collateralForm: UntypedFormGroup;
+  /** Charges Template data */
+  collateralTemplateData: any;
+
+  /**
+   * Retrieves the collateral template data
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {ProductsService} productsService Products Service.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Router} router Router for navigation.
+   * @param {SettingsService} settingsService Settings Service
+   */
+  constructor() {
+    this.route.data.subscribe((data: { collateralTemplate: any }) => {
+      this.organizationService.getCurrencies().subscribe((orgCurrencies: any) => {
+        let orgCurrencyList = Array.isArray(orgCurrencies.selectedCurrencyOptions)
+          ? orgCurrencies.selectedCurrencyOptions
+          : [];
+        this.collateralTemplateData = data.collateralTemplate.filter((currency: any) =>
+          orgCurrencyList.some((orgCurrency: any) => orgCurrency.code === currency.code)
+        );
+      });
+    });
+  }
+
+  /**
+   * Create and sets Collateral Form
+   */
+  ngOnInit(): void {
+    this.createCollateralForm();
+  }
+
+  /**
+   * Create the Collateral Form
+   */
+  createCollateralForm() {
+    this.collateralForm = this.formBuilder.group({
+      name: [
+        '',
+        Validators.required
+      ],
+      unitType: [
+        '',
+        Validators.required
+      ],
+      basePrice: [
+        '',
+        Validators.required
+      ],
+      pctToBase: [
+        '',
+        Validators.required
+      ],
+      currency: [
+        '',
+        Validators.required
+      ],
+      quality: [
+        '',
+        Validators.required
+      ]
+    });
+  }
+
+  /**
+   * Submit a new collateral Product form
+   */
+  submit() {
+    const collateralFormData = this.collateralForm.value;
+    const locale = this.settingsService.language.code;
+    const data = {
+      ...collateralFormData,
+      locale
+    };
+    this.productsService.createCollateral(data).subscribe((response: any) => {
+      this.router.navigate(['../'], { relativeTo: this.route });
+    });
+  }
+}

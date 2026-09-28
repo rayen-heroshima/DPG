@@ -1,0 +1,203 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import {
+  UntypedFormGroup,
+  UntypedFormBuilder,
+  Validators,
+  UntypedFormControl,
+  ReactiveFormsModule
+} from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Dates } from 'app/core/utils/dates';
+
+/** Custom Services */
+import { GroupsService } from 'app/groups/groups.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { MatFormField, MatLabel, MatError, MatSuffix, MatHint } from '@angular/material/form-field';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Edit Group Meetings Component
+ */
+@Component({
+  selector: 'mifosx-edit-group-meeting',
+  templateUrl: './edit-group-meeting.component.html',
+  styleUrls: ['./edit-group-meeting.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    FaIconComponent,
+    MatHint
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EditGroupMeetingComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private groupsService = inject(GroupsService);
+  private dateUtils = inject(Dates);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private settingsService = inject(SettingsService);
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum date allowed. */
+  maxDate = new Date();
+  /** Group Meeting form. */
+  groupEditMeetingForm: UntypedFormGroup;
+  /** Calendar Template Data */
+  calendarTemplate: any;
+  /** Group Id */
+  groupId: any;
+  /** Repetition Intervals */
+  repetitionIntervals: any[];
+  /** Frequency Options */
+  frequencyOptions: any;
+  /** Repetition Days Data */
+  repeatsOnDays: any;
+  /** CalendarI ID */
+  calendarId: any;
+
+  /**
+   * Fetches Calendar Template from `resolve`
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {GroupsService} groupsService Shares Service
+   * @param {Dates} dateUtils Date Utils
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   * @param {SettingsService} settingsService SettingsService
+   */
+  constructor() {
+    this.route.data.subscribe((data: { groupActionData: any }) => {
+      this.calendarTemplate = data.groupActionData;
+      this.frequencyOptions = this.calendarTemplate.frequencyOptions;
+      this.repeatsOnDays = this.calendarTemplate.repeatsOnDayOptions;
+    });
+    this.calendarId = this.route.snapshot.queryParams['calendarId'];
+    this.groupId = this.route.parent.snapshot.params['groupId'];
+  }
+
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.createEditGroupMeetingForm();
+    this.buildDependencies();
+  }
+
+  /**
+   * Creates the Edit Group Meeting form.
+   */
+  createEditGroupMeetingForm() {
+    this.groupEditMeetingForm = this.formBuilder.group({
+      startDate: [
+        '',
+        Validators.required
+      ],
+      frequency: [
+        '',
+        Validators.required
+      ],
+      interval: [
+        '',
+        Validators.required
+      ]
+    });
+  }
+
+  /**
+   * Subscribes to value changes of controls.
+   */
+  buildDependencies() {
+    this.groupEditMeetingForm.get('frequency').valueChanges.subscribe((frequency: any) => {
+      this.groupEditMeetingForm.removeControl('repeatsOnDay');
+      switch (frequency) {
+        case 1: // Daily
+          this.repetitionIntervals = [
+            '1',
+            '2',
+            '3'
+          ];
+          break;
+        case 2: // Weekly
+          this.repetitionIntervals = [
+            '1',
+            '2',
+            '3'
+          ];
+          this.groupEditMeetingForm.addControl('repeatsOnDay', new UntypedFormControl('', Validators.required));
+          this.groupEditMeetingForm.get('repeatsOnDay').patchValue(this.calendarTemplate.repeatsOnDay.id);
+          break;
+        case 3: // Monthly
+          this.repetitionIntervals = [
+            '1',
+            '2',
+            '3',
+            '4',
+            '5',
+            '6',
+            '7',
+            '8',
+            '9',
+            '10',
+            '11'
+          ];
+          break;
+        case 4: // Yearly
+          this.repetitionIntervals = [
+            '1',
+            '2',
+            '3',
+            '4',
+            '5'
+          ];
+          break;
+      }
+    });
+    this.groupEditMeetingForm.patchValue({
+      startDate: this.calendarTemplate.startDate && new Date(this.calendarTemplate.startDate),
+      frequency: this.calendarTemplate.frequency.id,
+      interval: `${this.calendarTemplate.interval}`
+    });
+  }
+
+  /**
+   * Navigate to edit meeting schedule form.
+   */
+  editSchedule() {
+    const queryParams: any = { calendarId: this.calendarId };
+    this.router.navigate([`../Edit Meeting Schedule`], { relativeTo: this.route, queryParams: queryParams });
+  }
+
+  /**
+   * Submits the form and updates the meeting.
+   */
+  submit() {
+    const groupEditMeetingFormData = this.groupEditMeetingForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const title = `groups_${this.groupId}_CollectionMeeting`;
+    const typeId = '1';
+    const prevStartDate: Date = this.groupEditMeetingForm.value.startDate;
+    if (groupEditMeetingFormData.startDate instanceof Date) {
+      groupEditMeetingFormData.startDate = this.dateUtils.formatDate(prevStartDate, dateFormat);
+    }
+    const data = {
+      ...groupEditMeetingFormData,
+      repeating: true,
+      title,
+      typeId,
+      dateFormat,
+      locale
+    };
+    this.groupsService.updateGroupMeeting(this.groupId, data, this.calendarId).subscribe((response: any) => {
+      this.router.navigate(['../../'], { relativeTo: this.route });
+    });
+  }
+}

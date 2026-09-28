@@ -1,0 +1,29 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+.delete-wrapper {
+  padding: 17.5px 0 0;
+}
+
+h2 {
+  font-weight: 500;
+  margin: 0;
+}
+
+h4 {
+  font-weight: 500;
+  margin: 0;
+}
+
+.mat-card .mat-divider-horizontal.mat-divider-inset {
+  margin: 1em 0 2em;
+}
+
+.cdk-drag-placeholder {
+  opacity: 0;
+}

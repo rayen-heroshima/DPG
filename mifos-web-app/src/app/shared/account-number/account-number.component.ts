@@ -1,0 +1,68 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, Input, OnInit, inject } from '@angular/core';
+import { Clipboard } from '@angular/cdk/clipboard';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+@Component({
+  selector: 'mifosx-account-number',
+  templateUrl: './account-number.component.html',
+  styleUrls: ['./account-number.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    FaIconComponent
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class AccountNumberComponent implements OnInit {
+  private clipboard = inject(Clipboard);
+
+  @Input() accountNo: string;
+  @Input() display = 'right';
+  @Input() clientId: number | null = null;
+  @Input() accountId: number | null = null;
+  @Input() accountType: string | null = null;
+
+  iconVisible = false;
+  displayL = false;
+  displayR = true;
+
+  ngOnInit(): void {
+    this.displayL = this.display === 'left';
+    this.displayR = this.display === 'right';
+  }
+
+  copyValue(): void {
+    this.clipboard.copy(this.accountNo);
+  }
+
+  mouseEnter() {
+    this.iconVisible = true;
+  }
+
+  mouseLeave() {
+    this.iconVisible = false;
+  }
+
+  getAccountLink(): string {
+    if (this.accountType) {
+      return `/#/clients/${this.clientId}/${this.getAccountType()}/${this.accountId}`;
+    }
+    return '';
+  }
+
+  private getAccountType(): string {
+    if (this.accountType === '1') {
+      return 'loan-accounts';
+    } else if (this.accountType === '2') {
+      return 'savings-accounts';
+    }
+  }
+}

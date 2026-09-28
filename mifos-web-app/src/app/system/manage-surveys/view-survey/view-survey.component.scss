@@ -1,0 +1,45 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+.mat-card {
+  margin: 5px;
+}
+
+.survey-questions {
+  margin-bottom: 10px;
+}
+
+#key-text {
+  margin: 10px;
+}
+
+#description {
+  margin: 10px;
+}
+
+#questionaire {
+  margin: 10px;
+}
+
+#response {
+  width: 100%;
+}
+
+#response th,
+#response td {
+  text-align: left;
+  width: 100px;
+}
+
+#response tr:hover {
+  background-color: #ddd;
+}
+
+mat-card-header {
+  margin-bottom: 12px;
+}

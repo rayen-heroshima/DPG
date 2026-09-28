@@ -1,0 +1,163 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container">
+  <mat-card>
+    <form [formGroup]="closeRecurringDepositForm" (ngSubmit)="submit()">
+      <mat-card-content>
+        <div class="layout-column">
+          <h3 class="mat-h3 flex-fill">{{ title }}</h3>
+
+          <mat-form-field (click)="closedOnDatePicker.open()">
+            <mat-label>{{ 'labels.inputs.Closed On' | translate }}</mat-label>
+            <input
+              matInput
+              [min]="minDate"
+              [max]="maxDate"
+              [matDatepicker]="closedOnDatePicker"
+              required
+              formControlName="closedOnDate"
+            />
+            <mat-datepicker-toggle matSuffix [for]="closedOnDatePicker"></mat-datepicker-toggle>
+            <mat-datepicker #closedOnDatePicker></mat-datepicker>
+            @if (closeRecurringDepositForm.controls.closedOnDate.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Closed On' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.Maturity Amount' | translate }}</mat-label>
+            <input matInput required formControlName="maturityAmount" />
+            @if (closeRecurringDepositForm.controls.maturityAmount.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Maturity Amount' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.Action' | translate }}</mat-label>
+            <mat-select formControlName="onAccountClosureId" required>
+              @for (onAccountClosureOption of onAccountClosureOptions; track onAccountClosureOption) {
+                <mat-option [value]="onAccountClosureOption.id">
+                  {{ onAccountClosureOption.value }}
+                </mat-option>
+              }
+            </mat-select>
+            @if (closeRecurringDepositForm.controls.onAccountClosureId.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Action' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          @if (closeRecurringDepositForm.contains('toSavingsAccountId')) {
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Transfer to Savings' | translate }}</mat-label>
+              <mat-select required formControlName="toSavingsAccountId">
+                @for (account of savingsAccountsData; track account) {
+                  <mat-option [value]="account.id">
+                    {{ account.accountNo }}
+                  </mat-option>
+                }
+              </mat-select>
+              @if (closeRecurringDepositForm.controls.toSavingsAccountId.hasError('required')) {
+                <mat-error>
+                  {{ 'labels.inputs.Transfer to savings account' | translate }} {{ 'labels.commons.is' | translate }}
+                  <strong>{{ 'labels.commons.required' | translate }}</strong>
+                </mat-error>
+              }
+            </mat-form-field>
+          }
+
+          @if (closeRecurringDepositForm.contains('transferDescription')) {
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Transfer Description' | translate }}</mat-label>
+              <input matInput formControlName="transferDescription" />
+            </mat-form-field>
+          }
+
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.Payment Type Id' | translate }}</mat-label>
+            <mat-select formControlName="paymentTypeId" required>
+              @for (paymentType of paymentTypes; track paymentType) {
+                <mat-option [value]="paymentType.id">
+                  {{ paymentType.name }}
+                </mat-option>
+              }
+            </mat-select>
+            @if (closeRecurringDepositForm.controls.paymentTypeId.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Payment Type' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <div class="flex-fill">
+            <span class="flex-25"> {{ 'labels.inputs.Show Payment Details' | translate }}</span>
+            <span class="expandcollapsebutton flex-75" (click)="toggleDisplay()">
+              @if (showPaymentDetails) {
+                <button mat-raised-button color="primary">
+                  <i class="fa fa-minus"></i>
+                </button>
+              }
+              @if (!showPaymentDetails) {
+                <button mat-raised-button color="primary">
+                  <i class="fa fa-plus"></i>
+                </button>
+              }
+            </span>
+          </div>
+
+          @if (showPaymentDetails) {
+            <mat-form-field>
+              <mat-label> {{ 'labels.inputs.Account' | translate }} #</mat-label>
+              <input matInput formControlName="accountNumber" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Cheque' | translate }} #</mat-label>
+              <input matInput formControlName="chequeNumber" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Routing Code' | translate }}</mat-label>
+              <input matInput formControlName="routingCode" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Reciept' | translate }} #</mat-label>
+              <input matInput formControlName="receiptNumber" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Bank' | translate }} #</mat-label>
+              <input matInput formControlName="bankNumber" />
+            </mat-form-field>
+          }
+
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.Note' | translate }}</mat-label>
+            <textarea matInput formControlName="note" cdkTextareaAutosize cdkAutosizeMinRows="2"></textarea>
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions class="layout-row align-center gap-5px responsive-column">
+        <button type="button" mat-raised-button [routerLink]="['../general']">
+          {{ 'labels.buttons.Cancel' | translate }}
+        </button>
+        <button mat-raised-button color="primary" [disabled]="!closeRecurringDepositForm.valid">
+          {{ 'labels.buttons.Submit' | translate }}
+        </button>
+      </mat-card-actions>
+    </form>
+  </mat-card>
+</div>

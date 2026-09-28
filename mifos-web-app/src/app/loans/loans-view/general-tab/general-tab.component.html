@@ -1,0 +1,300 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="tab-container mat-typography">
+  <div class="general-card">
+    @if (loanDetails.summary) {
+      @if (loanProductService.isWorkingCapital && loanDetails.chargedOff) {
+        <div class="section">
+          <div class="section-head">
+            <h3 class="section-title">{{ 'labels.menus.Charge-Off' | translate }}</h3>
+          </div>
+          <div class="fact-grid">
+            <div class="fact">
+              <div class="fact-label">{{ 'labels.inputs.Charged Off On' | translate }}</div>
+              <div class="fact-value">
+                <span class="charged-off-badge">{{ 'labels.status.Charged Off' | translate }}</span>
+                <span class="m-l-10">{{ loanDetails.chargedOffOnDate | dateFormat }}</span>
+              </div>
+            </div>
+            @if (loanDetails.chargeOffReason?.name) {
+              <div class="fact">
+                <div class="fact-label">{{ 'labels.inputs.Reason for Charge-Off' | translate }}</div>
+                <div class="fact-value">{{ loanDetails.chargeOffReason.name }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+      @if (loanProductService.isWorkingCapital && loanDetails.writtenOffOnDate) {
+        <div class="section">
+          <div class="section-head">
+            <h3 class="section-title">{{ 'labels.menus.Write-Off' | translate }}</h3>
+          </div>
+          <div class="fact-grid">
+            <div class="fact">
+              <div class="fact-label">{{ 'labels.status.Written Off' | translate }}</div>
+              <div class="fact-value">{{ loanDetails.writtenOffOnDate | dateFormat }}</div>
+            </div>
+            @if (loanDetails.writeOffReason?.name) {
+              <div class="fact">
+                <div class="fact-label">{{ 'labels.inputs.Reason for Write-Off' | translate }}</div>
+                <div class="fact-value">{{ loanDetails.writeOffReason.name }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      @if (loanProductService.isWorkingCapital && loanDetails.writtenOffOnDate) {
+        <div class="section">
+          <div class="section-head">
+            <h3 class="section-title">{{ 'labels.heading.Recovery' | translate }}</h3>
+          </div>
+          <mifosx-working-capital-recovery-panel
+            [balance]="loanDetails.balance"
+            [currencyCode]="currencyCode"
+          ></mifosx-working-capital-recovery-panel>
+        </div>
+      }
+
+      @if (hasNumberOfRepayments() || loanDetails.timeline?.expectedMaturityDate) {
+        <div class="section">
+          <div class="section-head">
+            <h3 class="section-title">{{ 'labels.heading.Performance History' | translate }}</h3>
+          </div>
+          <div class="fact-grid">
+            @if (hasNumberOfRepayments()) {
+              <div class="fact">
+                <div class="fact-label">{{ 'labels.inputs.Number of Repayments' | translate }}</div>
+                <div class="fact-value amount">{{ loanDetails.numberOfRepayments | formatNumber }}</div>
+              </div>
+            }
+            @if (loanDetails.timeline?.expectedMaturityDate) {
+              <div class="fact">
+                <div class="fact-label">{{ 'labels.inputs.Maturity Date' | translate }}</div>
+                <div class="fact-value">{{ loanDetails.timeline.expectedMaturityDate | dateFormat }}</div>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <div class="section">
+        <mifosx-loan-summary-balance-component
+          [summary]="loanDetails.summary"
+          [currency]="loanDetails.currency"
+          [hasChargeBack]="hasChargeBack"
+        >
+        </mifosx-loan-summary-balance-component>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h3 class="section-title">{{ 'labels.heading.Loan Details' | translate }}</h3>
+        </div>
+        <div class="fact-grid">
+          <div class="fact">
+            <div class="fact-label">{{ 'labels.inputs.Product Type' | translate }}</div>
+            <div class="fact-value">{{ loanProductType() | translate }}</div>
+          </div>
+          <div class="fact span-2">
+            <div class="fact-label">{{ 'labels.inputs.Product Name' | translate }}</div>
+            <div class="fact-value">
+              {{
+                loanDetails.loanProductName || loanDetails.product?.name || ('labels.inputs.Not Available' | translate)
+              }}
+            </div>
+          </div>
+          <div class="fact">
+            <div class="fact-label">{{ 'labels.inputs.Status' | translate }}</div>
+            <div class="fact-value">
+              <span class="status-chip" [ngClass]="statusClass()">
+                <span class="st"></span>
+                {{ 'labels.status.' + loanDetails.status?.value | translate }}
+              </span>
+            </div>
+          </div>
+          @if (loanDetails.timeline.actualDisbursementDate) {
+            <div class="fact">
+              <div class="fact-label">{{ 'labels.inputs.Disbursement Date' | translate }}</div>
+              <div class="fact-value">{{ loanDetails.timeline.actualDisbursementDate | dateFormat }}</div>
+            </div>
+          }
+          <div class="fact">
+            <div class="fact-label">{{ 'labels.inputs.Currency' | translate }}</div>
+            <div class="fact-value">{{ loanDetails.currency?.name }} · {{ loanDetails.currency?.code }}</div>
+          </div>
+          @if (loanDetails.externalId) {
+            <div class="fact span-2">
+              <div class="fact-label">{{ 'labels.inputs.External Id' | translate }}</div>
+              <div class="fact-value">
+                <mifosx-external-identifier
+                  externalId="{{ loanDetails.externalId }}"
+                  completed="true"
+                ></mifosx-external-identifier>
+              </div>
+            </div>
+          }
+          <div class="fact">
+            <div class="fact-label">{{ 'labels.inputs.Proposed Amount' | translate }}</div>
+            <div class="fact-value amount">
+              {{ loanDetails.proposedPrincipal | currency: currencyCode : 'symbol-narrow' : '1.2-2' }}
+            </div>
+          </div>
+          <div class="fact">
+            <div class="fact-label">{{ 'labels.inputs.Approved Amount' | translate }}</div>
+            <div class="fact-value amount">
+              {{ loanDetails.approvedPrincipal | currency: currencyCode : 'symbol-narrow' : '1.2-2' }}
+            </div>
+          </div>
+          <div class="fact">
+            <div class="fact-label">{{ 'labels.inputs.Disburse Amount' | translate }}</div>
+            <div class="fact-value amount">
+              {{ loanDetails.principal | currency: currencyCode : 'symbol-narrow' : '1.2-2' }}
+            </div>
+          </div>
+          @if (loanProductService.isLoanProduct && loanDetails.writeOffReason) {
+            <div class="fact">
+              <div class="fact-label">{{ 'labels.inputs.WriteOff Reason' | translate }}</div>
+              <div class="fact-value">{{ loanDetails.writeOffReason }}</div>
+            </div>
+          }
+          @if (loanProductService.isLoanProduct) {
+            <div class="fact">
+              <div class="fact-label">{{ 'labels.inputs.Loan Officer' | translate }}</div>
+              @if (loanDetails.loanOfficerName) {
+                <div class="fact-value">{{ loanDetails.loanOfficerName }}</div>
+              } @else {
+                <div class="fact-value muted">{{ 'labels.inputs.Unassigned' | translate }}</div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (!loanDetails.summary) {
+      <div class="section">
+        <div class="section-head">
+          <h3 class="section-title">{{ 'labels.heading.Loan Details' | translate }}</h3>
+        </div>
+        <div class="fact-grid">
+          <div class="fact">
+            <div class="fact-label">{{ 'labels.inputs.Product Type' | translate }}</div>
+            <div class="fact-value">{{ loanProductType() | translate }}</div>
+          </div>
+          <div class="fact span-2">
+            <div class="fact-label">{{ 'labels.inputs.Product Name' | translate }}</div>
+            <div class="fact-value">
+              {{
+                loanDetails.loanProductName || loanDetails.product?.name || ('labels.inputs.Not Available' | translate)
+              }}
+            </div>
+          </div>
+          <div class="fact">
+            <div class="fact-label">{{ 'labels.inputs.Status' | translate }}</div>
+            <div class="fact-value">
+              <span class="status-chip" [ngClass]="statusClass()">
+                <span class="st"></span>
+                {{ 'labels.status.' + loanDetails.status?.value | translate }}
+              </span>
+            </div>
+          </div>
+          @if (loanDetails.timeline.actualDisbursementDate) {
+            <div class="fact">
+              <div class="fact-label">{{ 'labels.inputs.Disbursement Date' | translate }}</div>
+              <div class="fact-value">{{ loanDetails.timeline.actualDisbursementDate | dateFormat }}</div>
+            </div>
+          }
+          <div class="fact">
+            <div class="fact-label">{{ 'labels.inputs.Currency' | translate }}</div>
+            <div class="fact-value">{{ loanDetails.currency?.name }} · {{ loanDetails.currency?.code }}</div>
+          </div>
+          @if (loanDetails.externalId) {
+            <div class="fact span-2">
+              <div class="fact-label">{{ 'labels.inputs.External Id' | translate }}</div>
+              <div class="fact-value">
+                <mifosx-external-identifier
+                  externalId="{{ loanDetails.externalId }}"
+                  completed="true"
+                ></mifosx-external-identifier>
+              </div>
+            </div>
+          }
+          @if (loanProductService.isLoanProduct) {
+            <div class="fact">
+              <div class="fact-label">{{ 'labels.inputs.Loan Officer' | translate }}</div>
+              @if (loanDetails.loanOfficerName) {
+                <div class="fact-value">{{ loanDetails.loanOfficerName }}</div>
+              } @else {
+                <div class="fact-value muted">{{ 'labels.inputs.Unassigned' | translate }}</div>
+              }
+            </div>
+            <div class="fact">
+              <div class="fact-label">{{ 'labels.inputs.Loan Purpose' | translate }}</div>
+              @if (loanDetails.loanPurposeName) {
+                <div class="fact-value">{{ loanDetails.loanPurposeName }}</div>
+              } @else {
+                <div class="fact-value muted">{{ 'labels.inputs.Not Provided' | translate }}</div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-head">
+          <h3 class="section-title">{{ 'labels.heading.Loan Amounts' | translate }}</h3>
+        </div>
+        <div class="fact-grid">
+          <div class="fact">
+            <div class="fact-label">{{ 'labels.inputs.Proposed Amount' | translate }}</div>
+            <div class="fact-value amount">
+              {{ loanDetails.proposedPrincipal | currency: currencyCode : 'symbol-narrow' : '1.2-2' }}
+            </div>
+          </div>
+          @if (loanDetails.balance) {
+            <div class="fact">
+              <div class="fact-label">
+                {{ 'labels.inputs.Total Payment' | translate }} {{ 'labels.inputs.Volume' | translate }}
+              </div>
+              <div class="fact-value amount">
+                {{ loanDetails.balance.totalPayment | currency: currencyCode : 'symbol-narrow' : '1.2-2' }}
+              </div>
+            </div>
+          }
+          @if (showApprovedAmountBasedOnStatus()) {
+            <div class="fact">
+              <div class="fact-label">{{ 'labels.inputs.Approved Amount' | translate }}</div>
+              <div class="fact-value amount">
+                {{ loanDetails.approvedPrincipal | currency: currencyCode : 'symbol-narrow' : '1.2-2' }}
+              </div>
+            </div>
+          }
+          @if (showDisbursedAmountBasedOnStatus()) {
+            <div class="fact">
+              <div class="fact-label">{{ 'labels.inputs.Disburse Amount' | translate }}</div>
+              <div class="fact-value amount">
+                {{ loanDetails.principal | currency: currencyCode : 'symbol-narrow' : '1.2-2' }}
+              </div>
+            </div>
+          }
+          @if (loanDetails.balloonRepaymentAmount > 0) {
+            <div class="fact">
+              <div class="fact-label">{{ 'labels.inputs.Balloon Repayment Amount' | translate }}</div>
+              <div class="fact-value amount">
+                {{ loanDetails.balloonRepaymentAmount | currency: currencyCode : 'symbol-narrow' : '1.2-2' }}
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

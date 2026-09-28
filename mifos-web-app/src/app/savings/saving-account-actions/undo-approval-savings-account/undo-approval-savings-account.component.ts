@@ -1,0 +1,81 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { FormGroup, FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { SavingsService } from 'app/savings/savings.service';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Undo Approval Savings Account Component
+ */
+@Component({
+  selector: 'mifosx-undo-approval-savings-account',
+  templateUrl: './undo-approval-savings-account.component.html',
+  styleUrls: ['./undo-approval-savings-account.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    CdkTextareaAutosize
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class UndoApprovalSavingsAccountComponent implements OnInit {
+  private formBuilder = inject(FormBuilder);
+  private savingsService = inject(SavingsService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
+  /** Undo Approval Savings Account form. */
+  undoApprovalSavingsAccountForm: FormGroup;
+  /** Savings Account Id */
+  accountId: any;
+
+  /**
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {SavingsService} savingsService Savings Service
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   */
+  constructor() {
+    this.accountId = this.route.snapshot.params['savingAccountId'];
+  }
+
+  /**
+   * Creates the undo-approval savings form.
+   */
+  ngOnInit() {
+    this.createUndoApprovalSavingsAccountForm();
+  }
+
+  /**
+   * Creates the undo-approval savings account form.
+   */
+  createUndoApprovalSavingsAccountForm() {
+    this.undoApprovalSavingsAccountForm = this.formBuilder.group({
+      note: ['']
+    });
+  }
+
+  /**
+   * Submits the form and undo the approval of share account,
+   * if successful redirects to the share account.
+   */
+  submit() {
+    const data = {
+      ...this.undoApprovalSavingsAccountForm.value
+    };
+    this.savingsService.executeSavingsAccountCommand(this.accountId, 'undoapproval', data).subscribe(() => {
+      this.router.navigate(['../../transactions'], { relativeTo: this.route });
+    });
+  }
+}

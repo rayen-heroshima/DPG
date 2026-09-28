@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="warn">
+    <Properties>
+        <Property name="layout">%d{HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n</Property>
+        <!-- CI sets TEST_LOG_SUPPRESSED_LEVEL=error when ci-verbose label is present to show all errors.
+        Defaults to off which disables these loggers entirely. -->
+        <Property name="suppressed.level">${env:TEST_LOG_SUPPRESSED_LEVEL:-off}</Property>
+    </Properties>
+
+    <Appenders>
+      <Console name="console_color" target="SYSTEM_OUT" follow="true">
+        <PatternLayout
+          pattern="%d{HH:mm:ss.SSS} %highlight{${LOG_LEVEL_PATTERN:-%5p}}{FATAL=red blink, ERROR=red, WARN=yellow bold, INFO=green, DEBUG=green bold, TRACE=blue} [%15.15t] %style{%-40.40C{1.}:%L}{cyan} : %m%n%throwable"/>
+      </Console>
+        <Console name="console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${layout}"/>
+        </Console>
+        <File name="file" fileName="target/test.log">
+            <PatternLayout pattern="${layout}"/>
+        </File>
+    </Appenders>
+
+    <Loggers>
+        <!-- Suppress expected errors from tests exercising error paths and from resources
+        not available in test classpaths (e.g. build.properties, apps-bundle.json).
+        These are not real failures - the tests pass, but the application logs at ERROR. -->
+        <Logger name="org.hisp.dhis.scheduling" level="${suppressed.level}"/>
+        <Logger name="org.hisp.dhis.system" level="${suppressed.level}"/>
+        <Logger name="org.hisp.dhis.appmanager" level="${suppressed.level}"/>
+        <Logger name="org.hisp.dhis.fileresource" level="${suppressed.level}"/>
+        <Logger name="org.hisp.dhis.sms" level="${suppressed.level}"/>
+        <Logger name="org.hisp.dhis.route" level="${suppressed.level}"/>
+        <Logger name="org.hisp.dhis.dxf2.gml" level="${suppressed.level}"/>
+        <Logger name="org.hisp.dhis.rules.engine" level="${suppressed.level}"/>
+        <Logger name="org.hisp.dhis.tracker.imports.sms" level="${suppressed.level}"/>
+        <!-- CrudControllerAdvice is the global @ControllerAdvice that catches exceptions from tests
+        deliberately exercising error paths (e.g. SQL injection tests). The broad package suppression
+        was replaced with this targeted class to keep other controller errors visible. -->
+        <Logger name="org.hisp.dhis.webapi.controller.CrudControllerAdvice" level="${suppressed.level}"/>
+
+        <Root level="warn">
+            <!-- Set to error so CI test runs are quiet, we see failed tests easily but still see errors from libraries
+            we use due to for example misconfigurations or so. If you want to increase the verbosity of specific
+            packages use a logger like shown below. -->
+            <AppenderRef ref="console" level="error"/>
+            <!-- Used to upload test logs during CI in case a test step fails. Verbosity is a bit higher, so we have more
+             information when debugging failed tests. -->
+            <AppenderRef ref="file" level="warn"/>
+        </Root>
+
+        <Logger name="org.openapitools.codegen" level="off"/>
+
+        <!-- Analytics tables do not exist in the test database, so any test that drives
+             the analytics engine (e.g. ADEX) produces expected "relation does not exist"
+             SQL errors.  The tests still pass; suppress the noise. -->
+        <Logger name="org.hisp.dhis.analytics.data.JdbcAnalyticsManager" level="fatal" additivity="false"/>
+        <Logger name="org.hisp.dhis.analytics.data.handler.DataHandler" level="fatal" additivity="false"/>
+        <Logger name="org.hisp.dhis.analytics.util.AnalyticsUtils" level="fatal" additivity="false"/>
+
+        <!-- Tests that verify uniqueness constraints intentionally trigger duplicate-key
+             violations; Hibernate logs every such exception at ERROR via SqlExceptionHelper. -->
+        <Logger name="org.hibernate.engine.jdbc.spi.SqlExceptionHelper" level="fatal" additivity="false"/>
+
+        <!-- A few examples of loggers that might be useful to debug integration test issues.
+        Adding an AppenderRef is necessary to overrule the log level we have set on the Root AppenderRefs.
+        Once you add an AppenderRef to a Logger you need to set additivity to false otherwise logs might appear twice
+        as they propagate up from the Logger to its parent which is the Root.
+        Check the log4j2 config documentation for more details. -->
+        <!-- Uncomment if you want to debug DHIS2 -->
+        <!-- <Logger name="org.hisp.dhis" level="debug" additivity="false">-->
+        <!--     <AppenderRef ref="console"/>-->
+        <!-- </Logger>-->
+        <!-- Uncomment if you want to debug testcontainers -->
+        <!-- <Logger name="org.testcontainers" level="debug" additivity="false">-->
+        <!--     <appenderref ref="console"/>-->
+        <!-- </Logger>-->
+        <!-- <Logger name="com.github.dockerjava" level="all" additivity="false">-->
+        <!--     <AppenderRef ref="console"/>-->
+        <!-- </Logger>-->
+        <!-- Uncomment if you want to debug spring test context (cache) -->
+        <!-- <Logger name="org.springframework.test.context.cache" level="debug">-->
+        <!--     <AppenderRef ref="console"/>-->
+        <!-- </Logger>-->
+        <!-- Uncomment to debug Spring bean creation/test configuration -->
+        <!--<Logger name="org.springframework.beans.factory.support.DefaultListableBeanFactory" level="debug" additivity="false">
+                <AppenderRef ref="console"/>
+        </Logger>-->
+
+        <!-- Uncomment to debug DB pool configuration -->
+        <!--        <Logger name="com.zaxxer.hikari.pool" level="debug" additivity="false">-->
+        <!--            <AppenderRef ref="console"/>-->
+        <!--        </Logger>-->
+        <!--        <Logger name="org.hisp.dhis.datasource.DatabasePoolUtils" level="debug" additivity="false">-->
+        <!--            <AppenderRef ref="console"/>-->
+        <!--        </Logger>-->
+    </Loggers>
+</Configuration>

@@ -1,0 +1,246 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, OnInit, ViewChild, inject } from '@angular/core';
+import { ViewJournalEntryComponent } from '../view-journal-entry/view-journal-entry.component';
+import { RevertTransactionComponent } from 'app/accounting/revert-transaction/revert-transaction.component';
+import { AccountingService } from 'app/accounting/accounting.service';
+import { MatDialog } from '@angular/material/dialog';
+import { ActivatedRoute, Router } from '@angular/router';
+import { MatSort, MatSortHeader } from '@angular/material/sort';
+import { MatPaginator } from '@angular/material/paginator';
+import {
+  MatTableDataSource,
+  MatTable,
+  MatColumnDef,
+  MatHeaderCellDef,
+  MatHeaderCell,
+  MatCellDef,
+  MatCell,
+  MatHeaderRowDef,
+  MatHeaderRow,
+  MatRowDef,
+  MatRow
+} from '@angular/material/table';
+import { Location } from '@angular/common';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { DateFormatPipe } from '../../../pipes/date-format.pipe';
+import { DatetimeFormatPipe } from '../../../pipes/datetime-format.pipe';
+import { FormatNumberPipe } from '../../../pipes/format-number.pipe';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+@Component({
+  selector: 'mifosx-view-journal-entry-transaction',
+  templateUrl: './view-journal-entry-transaction.component.html',
+  styleUrls: ['./view-journal-entry-transaction.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    FaIconComponent,
+    MatTable,
+    MatSort,
+    MatColumnDef,
+    MatHeaderCellDef,
+    MatHeaderCell,
+    MatSortHeader,
+    MatCellDef,
+    MatCell,
+    MatHeaderRowDef,
+    MatHeaderRow,
+    MatRowDef,
+    MatRow,
+    DateFormatPipe,
+    DatetimeFormatPipe,
+    FormatNumberPipe
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ViewJournalEntryTransactionComponent implements OnInit {
+  private accountingService = inject(AccountingService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  dialog = inject(MatDialog);
+  private location = inject(Location);
+
+  title: string;
+  journalEntriesData: any[];
+  /** Transaction data.  */
+  transaction: any;
+  /** Transaction ID. */
+  transactionId: string;
+  /** Columns to be displayed in transaction table. */
+  displayedColumns: string[] = [
+    'id',
+    'glAccountType',
+    'glAccountCode',
+    'glAccountName',
+    'debit',
+    'credit'
+  ];
+  /** Data source for transaction table. */
+  dataSource: MatTableDataSource<any>;
+
+  /** Paginator for transaction table. */
+  @ViewChild(MatPaginator, { static: true }) paginator: MatPaginator;
+  /** Sorter for transaction table. */
+  @ViewChild(MatSort, { static: true }) sort: MatSort;
+
+  isJournalEntryLoaded = false;
+
+  isManualJournalEntry = false;
+
+  totalDebit = 0;
+  totalCredit = 0;
+  currencySymbol = '';
+
+  /**
+   * Retrieves the transaction data from `resolve` and sets the transaction table.
+   */
+  ngOnInit() {
+    this.route.data.subscribe((data: { title: string; transaction: any; transferJournalEntryData: any }) => {
+      this.title = data.title;
+      this.isJournalEntryLoaded = false;
+      if (this.isViewTransaction()) {
+        this.transaction = data.transaction;
+        if (data.transaction.pageItems.length > 0) {
+          this.isJournalEntryLoaded = true;
+          this.transactionId = data.transaction.pageItems[0].transactionId;
+          this.isManualJournalEntry = data.transaction.pageItems[0].manualEntry;
+        }
+      } else if (this.isViewTransfer()) {
+        this.journalEntriesData = data.transferJournalEntryData.journalEntryData.content;
+        this.isJournalEntryLoaded = true;
+      }
+      this.setTransaction();
+      this.computeTotals();
+    });
+  }
+
+  /**
+   * Computes total debit/credit amounts to feed the trial balance strip.
+   */
+  computeTotals(): void {
+    if (!this.dataSource || !this.dataSource.data.length) {
+      return;
+    }
+    let debit = 0;
+    let credit = 0;
+    for (const entry of this.dataSource.data) {
+      const amount = Number(entry.amount) || 0;
+      if (entry.entryType?.value === 'DEBIT') {
+        debit += amount;
+      } else if (entry.entryType?.value === 'CREDIT') {
+        credit += amount;
+      }
+    }
+    this.totalDebit = debit;
+    this.totalCredit = credit;
+    const firstCurrency = this.dataSource.data[0]?.currency;
+    this.currencySymbol = firstCurrency?.displaySymbol || firstCurrency?.code || '';
+  }
+
+  get netBalance(): number {
+    return Math.abs(this.totalDebit - this.totalCredit);
+  }
+
+  get isBalanced(): boolean {
+    return this.netBalance < 0.005;
+  }
+
+  get firstEntry(): any {
+    return this.dataSource?.data?.[0];
+  }
+
+  get isReversed(): boolean {
+    return !!this.firstEntry?.reversed;
+  }
+
+  glAccountTypeClass(type?: string): string {
+    if (!type) return 'asset';
+    const normalized = type.toUpperCase();
+    if (normalized.includes('LIAB')) return 'liability';
+    if (normalized.includes('EQUITY')) return 'equity';
+    if (normalized.includes('INCOME') || normalized.includes('REVENUE')) return 'income';
+    if (normalized.includes('EXPENSE')) return 'expense';
+    return 'asset';
+  }
+
+  isViewTransaction(): boolean {
+    return this.title === 'View Transaction';
+  }
+
+  isViewTransfer(): boolean {
+    return this.title === 'View Transfer';
+  }
+
+  /**
+   * Initializes the data source for transaction table with journal entries, paginator and sorter.
+   */
+  setTransaction() {
+    if (this.journalEntriesData != null) {
+      this.dataSource = new MatTableDataSource(this.journalEntriesData);
+    } else {
+      this.dataSource = new MatTableDataSource(this.transaction.pageItems);
+      this.dataSource.sortingDataAccessor = (transaction: any, property: any) => {
+        switch (property) {
+          case 'glAccountType':
+            return transaction.glAccountType.value;
+          case 'debit':
+            return transaction.amount;
+          case 'credit':
+            return transaction.amount;
+          default:
+            return transaction[property];
+        }
+      };
+    }
+    this.dataSource.paginator = this.paginator;
+    this.dataSource.sort = this.sort;
+  }
+
+  /**
+   * View details of selected journal entry.
+   * @param {any} journalEntry Selected journal entry.
+   */
+  viewJournalEntry(journalEntry: any) {
+    this.dialog.open(ViewJournalEntryComponent, {
+      data: { journalEntry: journalEntry }
+    });
+  }
+
+  /**
+   * Reverts the given transaction and redirects to reverted transaction.
+   * @param {transactionId} transactionId Transaction ID of transaction to be reverted.
+   */
+  revertTransaction(transactionId?: string) {
+    const revertTransactionDialogRef = this.dialog.open(RevertTransactionComponent, {
+      data: { reverted: this.dataSource.data[0].reversed, transactionId: transactionId }
+    });
+    revertTransactionDialogRef.afterClosed().subscribe((response: any) => {
+      if (response.revert) {
+        this.accountingService
+          .revertTransaction(this.transactionId, response.comments)
+          .subscribe((reversedTransaction: any) => {
+            this.dataSource.data[0].reversed = true;
+            this.revertTransaction(reversedTransaction.transactionId);
+          });
+      } else if (response.redirect) {
+        this.router.navigate(
+          [
+            '../',
+            transactionId
+          ],
+          { relativeTo: this.route }
+        );
+      }
+    });
+  }
+
+  goBack(): void {
+    this.location.back();
+  }
+}

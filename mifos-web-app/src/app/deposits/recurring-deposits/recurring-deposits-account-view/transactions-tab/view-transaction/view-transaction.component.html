@@ -1,0 +1,100 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+@if (!transactionData.reversed) {
+  <div class="container m-b-20 align-end gap-2percent">
+    <span *mifosxHasPermission="'ADJUSTTRANSACTION_SAVINGSACCOUNT'">
+      @if (!(transactionData.transactionType.value === 'Transfer' || transactionData.reversed === 'true')) {
+        <button mat-raised-button color="primary" [routerLink]="'edit'">
+          <fa-icon icon="edit" class="m-r-10"></fa-icon>{{ 'labels.buttons.Edit' | translate }}
+        </button>
+      }
+    </span>
+    <button
+      mat-raised-button
+      color="warn"
+      *mifosxHasPermission="'UNDOTRANSACTION_SAVINGSACCOUNT'"
+      (click)="undoTransaction()"
+    >
+      <fa-icon icon="undo" class="m-r-10"></fa-icon>{{ 'labels.buttons.Undo' | translate }}
+    </button>
+  </div>
+}
+
+<div class="container">
+  <mat-card>
+    <mat-card-content>
+      <div class="layout-row-wrap">
+        <div class="flex-100" [ngClass]="transactionColor()"></div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Transaction Id' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ transactionData.id }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Type' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ transactionData.transactionType.value }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Transaction Date' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ transactionData.date | dateFormat }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Currency' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ transactionData.currency.displayLabel }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Amount' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ transactionData.amount | currency: transactionData.currency.code : 'symbol-narrow' : '1.2-2' }}
+        </div>
+
+        @if (transactionData.note) {
+          <div class="flex-50 mat-body-strong">
+            {{ 'labels.inputs.Note' | translate }}
+          </div>
+        }
+
+        @if (transactionData.note) {
+          <div class="flex-50">
+            {{ transactionData.note }}
+          </div>
+        }
+
+        @if (transactionData.paymentDetailData) {
+          <mifosx-transaction-payment-detail [paymentDetailData]="transactionData.paymentDetailData">
+          </mifosx-transaction-payment-detail>
+        }
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions class="layout-row layout-xs-column layout-align-center gap-5px m-b-20">
+      <button type="button" color="primary" mat-raised-button (click)="goBack()">
+        {{ 'labels.buttons.Back' | translate }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>

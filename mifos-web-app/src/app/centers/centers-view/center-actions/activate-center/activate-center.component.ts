@@ -1,0 +1,102 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { CentersService } from 'app/centers/centers.service';
+import { Dates } from 'app/core/utils/dates';
+import { SettingsService } from 'app/settings/settings.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Activate Center Component
+ */
+@Component({
+  selector: 'mifosx-activate-center',
+  templateUrl: './activate-center.component.html',
+  styleUrls: ['./activate-center.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ActivateCenterComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private centersService = inject(CentersService);
+  private settingsService = inject(SettingsService);
+  private dateUtils = inject(Dates);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum date allowed. */
+  maxDate = new Date();
+  /** Activate center form. */
+  activateCenterForm: UntypedFormGroup;
+  /** Group Account Id */
+  centerId: any;
+
+  /**
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {centersService} CentersService Shares Service
+   * @param {SettingsService} settingsService Settings Service.
+   * @param {Dates} dateUtils Date Utils
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   */
+  constructor() {
+    this.centerId = this.route.parent.snapshot.params['centerId'];
+  }
+
+  /**
+   * Creates the activate center form.
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.createActivateCenterForm();
+  }
+
+  /**
+   * Creates the activate center form.
+   */
+  createActivateCenterForm() {
+    this.activateCenterForm = this.formBuilder.group({
+      activationDate: [
+        new Date(),
+        Validators.required
+      ]
+    });
+  }
+
+  /**
+   * Submits the form and activates the center,
+   * if successful redirects to the center.
+   */
+  submit() {
+    const activateCenterData = this.activateCenterForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevactivationDate: Date = this.activateCenterForm.value.activationDate;
+    if (activateCenterData.activationDate instanceof Date) {
+      activateCenterData.activationDate = this.dateUtils.formatDate(prevactivationDate, dateFormat);
+    }
+    const data = {
+      ...activateCenterData,
+      dateFormat,
+      locale
+    };
+    this.centersService.executeCenterActionCommand(this.centerId, 'activate', data).subscribe(() => {
+      this.router.navigate(['../../'], { relativeTo: this.route });
+    });
+  }
+}

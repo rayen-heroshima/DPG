@@ -1,0 +1,118 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container m-b-20 layout-row layout-lt-md-column align-end gap-2percent">
+  <button mat-raised-button color="primary" [routerLink]="['edit']">
+    <fa-icon icon="edit" class="m-r-10"></fa-icon>
+    {{ 'labels.buttons.Edit' | translate }}
+  </button>
+  <button mat-raised-button color="warn" (click)="delete()">
+    <fa-icon icon="trash" class="m-r-10"></fa-icon>
+    {{ 'labels.buttons.Delete' | translate }}
+  </button>
+  @if (userData.isSelfServiceUser === 'USER_STATE_ACTIVE' || userData.isSelfServiceUser === 'USER_STATE_INACTIVE') {
+    <div>
+      <button mat-raised-button color="primary" (click)="changeUserPassword(userData.id)">
+        <fa-icon icon="cog" class="m-r-10"></fa-icon>
+        {{ 'labels.buttons.Change Password' | translate }}
+      </button>
+    </div>
+  }
+  <div>
+    @switch (userData.isSelfServiceUser) {
+      @case ('USER_STATE_ACTIVE') {
+        <button mat-raised-button color="warn" (click)="desactiveUser(userData.id)">
+          <fa-icon icon="ban" class="m-r-10"></fa-icon>
+          {{ 'labels.buttons.Disable' | translate }}
+        </button>
+      }
+      @case ('USER_STATE_INACTIVE') {
+        <button mat-raised-button color="primary" (click)="activeUser(userData.id)">
+          <fa-icon icon="check" class="m-r-10"></fa-icon>
+          {{ 'labels.buttons.Reactivate' | translate }}
+        </button>
+      }
+      @default {
+        <button mat-raised-button color="primary" disabled>
+          <fa-icon icon="ban" class="m-r-10"></fa-icon>
+          {{ 'labels.buttons.Validate' | translate }}
+        </button>
+      }
+    }
+  </div>
+</div>
+
+<div class="container">
+  <mat-card>
+    <mat-card-content>
+      <div class="layout-row-wrap">
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Login Name' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ userData.username }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.First Name' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ userData.firstname }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Last Name' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ userData.lastname }}
+        </div>
+
+        @if (userData.email) {
+          <div class="flex-50 mat-body-strong">
+            {{ 'labels.inputs.Email' | translate }}
+          </div>
+        }
+
+        @if (userData.email) {
+          <div class="flex-50">
+            {{ userData.email }}
+          </div>
+        }
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Office' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ userData.officeName }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Roles' | translate }}
+        </div>
+
+        <div class="flex-50">
+          @for (role of userData.selectedRoles; track role) {
+            <span>
+              {{ role.name }}
+            </span>
+          }
+        </div>
+      </div>
+
+      <div class="layout-row layout-align-center gap-2percent column-on-mobile">
+        <button type="button" mat-raised-button color="primary" [routerLink]="['../../']">
+          {{ 'labels.buttons.Back' | translate }}
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

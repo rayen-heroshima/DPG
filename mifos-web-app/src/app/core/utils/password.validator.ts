@@ -1,0 +1,49 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+import { environment } from '../../../environments/environment';
+
+export function passwordValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const value = control.value;
+    if (!value) return null; // No validation if the field is empty
+
+    const errors: ValidationErrors = {};
+
+    if (value.length < environment.minPasswordLength) {
+      errors['minLength'] = 'Password must be at least ' + environment.minPasswordLength + ' characters long';
+    }
+    if (value.length > 50) {
+      errors['maxLength'] = 'Password must be maximum 50 characters long';
+    }
+    if (!/[A-Z]/.test(value)) {
+      errors['uppercase'] = 'Password must contain at least one uppercase letter';
+    }
+    if (!/[a-z]/.test(value)) {
+      errors['lowercase'] = 'Password must contain at least one lowercase letter';
+    }
+    if (!/\d/.test(value)) {
+      errors['number'] = 'Password must contain at least one number';
+    }
+    // Check for consecutive repeating characters (e.g., aa, 11, @@)
+    if (/(.)\1/.test(value)) {
+      errors['repeated'] = 'Password must not have consecutive repeating characters';
+    }
+    // Check for any special character (non-alphanumeric, non-space)
+    if (!/[^\w\s]/.test(value)) {
+      errors['specialChar'] = 'Password must contain at least one special character';
+    }
+    // Check for spaces
+    if (/\s/.test(value)) {
+      errors['spaces'] = 'Password must not contain spaces';
+    }
+
+    return Object.keys(errors).length > 0 ? errors : null;
+  };
+}

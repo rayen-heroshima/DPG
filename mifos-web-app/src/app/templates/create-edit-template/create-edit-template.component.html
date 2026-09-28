@@ -1,0 +1,221 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container">
+  <mat-card class="layout-column gap-2percent">
+    <form [formGroup]="templateForm">
+      <mat-card-content>
+        <div class="layout-row-wrap gap-2px responsive-column">
+          <mat-form-field class="flex-48">
+            <mat-label>{{ 'labels.inputs.Entity' | translate }}</mat-label>
+            <mat-select required formControlName="entity">
+              @for (entity of templateData.entities; track trackByEntityId($index, entity)) {
+                <mat-option [value]="entity.id">
+                  {{ entity.name }}
+                </mat-option>
+              }
+            </mat-select>
+            @if (templateForm.controls.entity.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Entity' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field class="flex-48">
+            <mat-label>{{ 'labels.inputs.Type' | translate }}</mat-label>
+            <mat-select required formControlName="type">
+              @for (type of templateData.types; track trackByTypeId($index, type)) {
+                <mat-option [value]="type.id">
+                  {{ type.name }}
+                </mat-option>
+              }
+            </mat-select>
+            @if (templateForm.controls.type.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Type' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field class="flex-48">
+            <mat-label>{{ 'labels.inputs.name' | translate }}</mat-label>
+            <input matInput required formControlName="name" />
+            @if (templateForm.controls.name.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.name' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </form>
+
+    <mat-card-content>
+      <div role="toggle" class="advanced-options-wrapper">
+        <button mat-raised-button color="primary" (click)="showAdvanceOptions = !showAdvanceOptions">
+          {{ 'labels.buttons.Advanced Options' | translate }}
+        </button>
+      </div>
+
+      @if (showAdvanceOptions) {
+        <ng-container role="mappers">
+          @for (mapper of mappers; track trackByMapperIndex(i, mapper); let i = $index) {
+            <div class="mapper-row layout-row gap-2percent">
+              <mat-form-field class="flex-48">
+                <mat-label>{{ 'labels.inputs.Mapper Key' | translate }}</mat-label>
+                <input matInput [formControl]="mapper.mapperskey" />
+              </mat-form-field>
+              <mat-form-field class="flex-fill flex-38">
+                <mat-label>{{ 'labels.inputs.Mapper Value' | translate }}</mat-label>
+                <input matInput [formControl]="mapper.mappersvalue" />
+              </mat-form-field>
+              @if (i === 0) {
+                <button class="mapper-button flex-8" mat-raised-button color="primary" (click)="addMapper()">
+                  <fa-icon icon="plus" class="m-r-10"></fa-icon>{{ 'labels.buttons.Add' | translate }}
+                </button>
+              }
+              @if (!(i === 0)) {
+                <button class="mapper-button flex-9" mat-raised-button color="primary" (click)="removeMapper(i)">
+                  <fa-icon icon="minus" class="m-r-10"></fa-icon>{{ 'labels.buttons.Remove' | translate }}
+                </button>
+              }
+            </div>
+          }
+        </ng-container>
+      }
+    </mat-card-content>
+
+    <mat-card-content>
+      <div role="editor" class="editor-wrapper">
+        <div class="editor-header">
+          <label
+            [attr.for]="textFormat === 'html' ? 'template-text-editor' : 'template-text-plain'"
+            class="required-label required-label-editor"
+          >
+            {{ 'labels.inputs.Text' | translate }} <span class="required-asterisk">*</span>
+          </label>
+          <div class="text-format-toggle" role="group" [attr.aria-label]="'labels.inputs.Text Format' | translate">
+            @for (option of textFormatOptions; track option.value) {
+              @if (textFormat === option.value) {
+                <button type="button" mat-raised-button color="primary" aria-pressed="true">
+                  {{ option.label | translate }}
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  mat-stroked-button
+                  color="primary"
+                  aria-pressed="false"
+                  (click)="setTextFormat(option.value)"
+                >
+                  {{ option.label | translate }}
+                </button>
+              }
+            }
+          </div>
+        </div>
+        @if (textFormat === 'html') {
+          @if (editorVisible) {
+            <editor
+              id="template-text-editor"
+              #tinymceEditor
+              [init]="tinymceConfig"
+              licenseKey="gpl"
+              [formControl]="templateForm.controls.text"
+            ></editor>
+          }
+        } @else {
+          <mat-form-field class="plain-text-field">
+            <textarea
+              id="template-text-plain"
+              matInput
+              #plainTextEditor
+              rows="10"
+              required
+              [formControl]="templateForm.controls.text"
+            ></textarea>
+            @if (templateForm.controls.text.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Text' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+        }
+      </div>
+    </mat-card-content>
+
+    <mat-card-content>
+      <div role="template-parameters">
+        <mat-accordion>
+          @if (templateForm.controls.entity.value === 0) {
+            <mat-expansion-panel>
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  {{ 'labels.inputs.Client Parameters' | translate }}
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <div class="layout-row-wrap layout-xs-column layout-align-center">
+                @for (label of clientParameterLabels; track trackByLabel($index, label)) {
+                  <button mat-stroked-button color="primary" class="parameter" (click)="addText(label)">
+                    {{ label }}
+                  </button>
+                }
+              </div>
+            </mat-expansion-panel>
+          }
+
+          @if (templateForm.controls.entity.value === 1) {
+            <mat-expansion-panel>
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  {{ 'labels.inputs.Loan Parameters' | translate }}
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <div class="layout-row-wrap layout-xs-column layout-align-center">
+                @for (label of loanParameterLabels; track trackByLabel($index, label)) {
+                  <button mat-stroked-button color="primary" class="parameter" (click)="addText(label)">
+                    {{ label }}
+                  </button>
+                }
+              </div>
+            </mat-expansion-panel>
+          }
+
+          @if (templateForm.controls.entity.value === 1) {
+            <mat-expansion-panel>
+              <mat-expansion-panel-header>
+                <mat-panel-title>
+                  {{ 'labels.inputs.Repayment Schedule Parameters' | translate }}
+                </mat-panel-title>
+              </mat-expansion-panel-header>
+              <div class="layout-row-wrap layout-xs-column layout-align-center">
+                @for (label of repaymentParameterLabels; track trackByLabel($index, label)) {
+                  <button mat-stroked-button color="primary" class="parameter" (click)="addText(label)">
+                    {{ label }}
+                  </button>
+                }
+              </div>
+            </mat-expansion-panel>
+          }
+        </mat-accordion>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions class="m-b-20 layout-row layout-xs-column layout-align-center gap-5px">
+      <button type="button" mat-raised-button [routerLink]="['../']">{{ 'labels.buttons.Cancel' | translate }}</button>
+      <button mat-raised-button color="primary" (click)="submit()" [disabled]="!templateForm.valid">
+        {{ 'labels.buttons.Submit' | translate }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>

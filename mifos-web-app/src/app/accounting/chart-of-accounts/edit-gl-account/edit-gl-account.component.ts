@@ -1,0 +1,156 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+
+/** Custom Services */
+import { AccountingService } from '../../accounting.service';
+import { GlAccountSelectorComponent } from '../../../shared/accounting/gl-account-selector/gl-account-selector.component';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Edit gl account component.
+ */
+@Component({
+  selector: 'mifosx-edit-gl-account',
+  templateUrl: './edit-gl-account.component.html',
+  styleUrls: ['./edit-gl-account.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    GlAccountSelectorComponent,
+    MatCheckbox,
+    CdkTextareaAutosize
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EditGlAccountComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private accountingService = inject(AccountingService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
+  /** GL account form. */
+  glAccountForm: UntypedFormGroup;
+  /** GL account and chart of accounts data. */
+  glAccount: any;
+  /** Account type data. */
+  accountTypeData: any;
+  /** Account usage data. */
+  accountUsageData: any;
+  /** Parent data. */
+  parentData: any;
+  /** Tag data. */
+  tagData: any;
+
+  /**
+   * Retrieves the chart of accounts data from `resolve`.
+   * @param {FormBuilder} formBuilder Form Builder.
+   * @param {AccountingService} accountingService Accounting Service.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Router} router Router for navigation.
+   */
+  constructor() {
+    this.route.data.subscribe((data: { glAccountAndChartOfAccountsTemplate: any }) => {
+      this.glAccount = data.glAccountAndChartOfAccountsTemplate;
+    });
+  }
+
+  /**
+   * Creates and sets gl account form.
+   */
+  ngOnInit() {
+    this.createGlAccountForm();
+    this.setGLAccountForm();
+  }
+
+  /**
+   * Creates gl account form.
+   */
+  createGlAccountForm() {
+    this.glAccountForm = this.formBuilder.group({
+      type: [
+        '',
+        Validators.required
+      ],
+      name: [
+        this.glAccount.name,
+        Validators.required
+      ],
+      usage: [
+        this.glAccount.usage.id,
+        Validators.required
+      ],
+      glCode: [
+        this.glAccount.glCode,
+        Validators.required
+      ],
+      parentId: [this.glAccount.parentId],
+      tagId: [this.glAccount.tagId.id],
+      manualEntriesAllowed: [
+        this.glAccount.manualEntriesAllowed,
+        Validators.required
+      ],
+      description: [this.glAccount.description]
+    });
+  }
+
+  /**
+   * Sets gl account form for selected account type.
+   */
+  setGLAccountForm() {
+    this.accountTypeData = this.glAccount.accountTypeOptions;
+    this.accountUsageData = this.glAccount.usageOptions;
+    this.glAccountForm.get('type').valueChanges.subscribe((accountTypeId) => {
+      switch (accountTypeId) {
+        case 1:
+          this.parentData = this.glAccount.assetHeaderAccountOptions;
+          this.tagData = this.glAccount.allowedAssetsTagOptions;
+          break;
+        case 2:
+          this.parentData = this.glAccount.liabilityHeaderAccountOptions;
+          this.tagData = this.glAccount.allowedLiabilitiesTagOptions;
+          break;
+        case 3:
+          this.parentData = this.glAccount.equityHeaderAccountOptions;
+          this.tagData = this.glAccount.allowedEquityTagOptions;
+          break;
+        case 4:
+          this.parentData = this.glAccount.incomeHeaderAccountOptions;
+          this.tagData = this.glAccount.allowedIncomeTagOptions;
+          break;
+        case 5:
+          this.parentData = this.glAccount.expenseHeaderAccountOptions;
+          this.tagData = this.glAccount.allowedExpensesTagOptions;
+          break;
+      }
+    });
+
+    this.glAccountForm.get('type').setValue(this.glAccount.type.id);
+  }
+
+  /**
+   * Submits the gl account form and updates gl account,
+   * if successful redirects to view updated account.
+   */
+  submit() {
+    this.accountingService.updateGlAccount(this.glAccount.id, this.glAccountForm.value).subscribe((response: any) => {
+      this.router.navigate(
+        [
+          '../../',
+          response.resourceId
+        ],
+        { relativeTo: this.route }
+      );
+    });
+  }
+}

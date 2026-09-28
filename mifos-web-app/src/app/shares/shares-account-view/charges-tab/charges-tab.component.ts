@@ -1,0 +1,90 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import {
+  MatTableDataSource,
+  MatTable,
+  MatColumnDef,
+  MatHeaderCellDef,
+  MatHeaderCell,
+  MatCellDef,
+  MatCell,
+  MatHeaderRowDef,
+  MatHeaderRow,
+  MatRowDef,
+  MatRow
+} from '@angular/material/table';
+import { ActivatedRoute } from '@angular/router';
+import { CurrencyPipe } from '@angular/common';
+import { MatTooltip } from '@angular/material/tooltip';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Charges Tab Component
+ */
+@Component({
+  selector: 'mifosx-charges-tab',
+  templateUrl: './charges-tab.component.html',
+  styleUrls: ['./charges-tab.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatTable,
+    MatColumnDef,
+    MatHeaderCellDef,
+    MatHeaderCell,
+    MatCellDef,
+    MatCell,
+    MatTooltip,
+    MatHeaderRowDef,
+    MatHeaderRow,
+    MatRowDef,
+    MatRow,
+    CurrencyPipe
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ChargesTabComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+
+  /** Shares Account Data */
+  sharesAccountData: any;
+  /** Charges Data */
+  chargesData: any[];
+  /** Data source for charges table. */
+  dataSource: MatTableDataSource<any>;
+  /** Columns to be displayed in charges table. */
+  displayedColumns: string[] = [
+    'name',
+    'feeOrPenalty',
+    'paymentDueAt',
+    'calculationType',
+    'due',
+    'paid',
+    'waived',
+    'outstanding',
+    'actions'
+  ];
+
+  /**
+   * Retrieves shares account aata from `resolve`.
+   * @param {ActivatedRoute} route Activated Route.
+   */
+  constructor() {
+    this.route.parent.data.subscribe((data: { sharesAccountData: any }) => {
+      this.sharesAccountData = data.sharesAccountData;
+      this.chargesData = this.sharesAccountData.charges;
+    });
+  }
+
+  ngOnInit() {
+    const activeCharges = this.chargesData ? this.chargesData.filter((charge) => charge.isActive) : [];
+    this.dataSource = new MatTableDataSource(activeCharges);
+  }
+}

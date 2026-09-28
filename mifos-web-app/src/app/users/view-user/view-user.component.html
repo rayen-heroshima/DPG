@@ -1,0 +1,82 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container m-b-20 layout-row layout-lt-md-column align-end gap-2percent">
+  <button mat-raised-button color="primary" [routerLink]="['edit']">
+    <fa-icon icon="edit" class="m-r-10"></fa-icon>
+    {{ 'labels.buttons.Edit' | translate }}
+  </button>
+  <button mat-raised-button color="warn" (click)="delete()">
+    <fa-icon icon="trash" class="m-r-10"></fa-icon>
+    {{ 'labels.buttons.Delete' | translate }}
+  </button>
+  <button mat-raised-button color="primary" (click)="changeUserPassword()">
+    <fa-icon icon="cog" class="m-r-10"></fa-icon>
+    {{ 'labels.buttons.Change Password' | translate }}
+  </button>
+</div>
+
+<div class="container">
+  <mat-card>
+    <mat-card-content>
+      <div class="content-rows">
+        <div class="content-row">
+          <div class="label">{{ 'labels.inputs.Login Name' | translate }}</div>
+          <div class="value">{{ userData.username }}</div>
+        </div>
+
+        <div class="content-row">
+          <div class="label">{{ 'labels.inputs.First Name' | translate }}</div>
+          <div class="value">{{ userData.firstname }}</div>
+        </div>
+
+        <div class="content-row">
+          <div class="label">{{ 'labels.inputs.Last Name' | translate }}</div>
+          <div class="value">{{ userData.lastname }}</div>
+        </div>
+
+        @if (userData.email) {
+          <div class="content-row">
+            <div class="label">{{ 'labels.inputs.Email' | translate }}</div>
+            <div class="value">{{ userData.email }}</div>
+          </div>
+        }
+
+        <div class="content-row">
+          <div class="label">{{ 'labels.inputs.Roles' | translate }}</div>
+          <div class="value">
+            @for (role of userData.selectedRoles; track role) {
+              <span>
+                {{ role.name }}
+              </span>
+            }
+          </div>
+        </div>
+
+        <div class="content-row">
+          <div class="label">{{ 'labels.buttons.Is Self Service' | translate }}</div>
+          <div class="value">
+            <span class="self-service-container">
+              <span
+                [ngClass]="userData.isSelfServiceUser ? 'self-service-true' : 'self-service-false'"
+                class="self-service-indicator"
+              ></span>
+              {{ userData.isSelfServiceUser ? ('labels.buttons.Yes' | translate) : ('labels.buttons.No' | translate) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="layout-row layout-align-center gap-2percent column-on-mobile back-button-container">
+        <button type="button" mat-raised-button color="primary" [routerLink]="['../']">
+          {{ 'labels.buttons.Back' | translate }}
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

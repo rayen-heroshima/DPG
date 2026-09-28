@@ -1,0 +1,106 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
+import { Dates } from 'app/core/utils/dates';
+import { DateFormatPipe } from '../../../../pipes/date-format.pipe';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+import { LoanAccountActionsBaseComponent } from '../loan-account-actions-base.component';
+
+@Component({
+  selector: 'mifosx-add-interest-pause',
+  templateUrl: './add-interest-pause.component.html',
+  styleUrls: ['./add-interest-pause.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    DateFormatPipe
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class AddInterestPauseComponent extends LoanAccountActionsBaseComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private dateUtils = inject(Dates);
+
+  /** Payment Type Options */
+  paymentTypes: any;
+  /** Show payment details */
+  showPaymentDetails = false;
+  /** Minimum Date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum Date allowed. */
+  maxDate = new Date();
+  startDate = new Date();
+  maturityDate: Date | null = null;
+  /** Interest Pause Loan Form */
+  interestPauseLoanForm: UntypedFormGroup;
+
+  /**
+   * @param {FormBuilder} formBuilder Form Builder.
+   * @param {SettingsService} settingsService Settings Service
+   */
+  constructor() {
+    super();
+  }
+
+  /**
+   * Creates the Interest Pause loan form
+   * and initialize with the required values
+   */
+  ngOnInit() {
+    this.maturityDate = new Date(this.dataObject.timeline.expectedMaturityDate);
+    this.maxDate = new Date(this.dataObject.timeline.expectedMaturityDate);
+    this.startDate = new Date(this.settingsService.businessDate);
+    if (this.startDate > this.maxDate) {
+      this.startDate = this.maxDate;
+    }
+    this.createInterestPauseLoanForm();
+  }
+
+  /**
+   * Creates the Interest Pause loan form.
+   */
+  createInterestPauseLoanForm() {
+    this.interestPauseLoanForm = this.formBuilder.group({
+      startDate: [
+        this.startDate,
+        Validators.required
+      ],
+      endDate: [
+        this.startDate,
+        Validators.required
+      ]
+    });
+  }
+
+  /** Submits the Interest Pause form */
+  submit() {
+    const interestPauseLoanFormData = this.interestPauseLoanForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const startDate: Date = this.interestPauseLoanForm.value.startDate;
+    if (interestPauseLoanFormData.startDate instanceof Date) {
+      interestPauseLoanFormData.startDate = this.dateUtils.formatDate(startDate, dateFormat);
+    }
+    const endDate: Date = this.interestPauseLoanForm.value.endDate;
+    if (interestPauseLoanFormData.endDate instanceof Date) {
+      interestPauseLoanFormData.endDate = this.dateUtils.formatDate(endDate, dateFormat);
+    }
+    const data = {
+      ...interestPauseLoanFormData,
+      dateFormat,
+      locale
+    };
+    this.loanService.addInterestPauseToLoan(this.loanId, data).subscribe({
+      next: (response: any) => {
+        this.gotoLoanView('term-variations');
+      },
+      error: (error) => {}
+    });
+  }
+}

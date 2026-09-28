@@ -1,0 +1,251 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, OnDestroy, ViewEncapsulation, inject } from '@angular/core';
+import { Router } from '@angular/router';
+
+/** RxJS Imports */
+import { forkJoin } from 'rxjs';
+
+/** Custom Services */
+import { NotificationsService } from 'app/notifications/notifications.service';
+import { environment } from '../../../environments/environment';
+import { MatIconButton } from '@angular/material/button';
+import { MatTooltip } from '@angular/material/tooltip';
+import { MatMenuTrigger, MatMenu, MatMenuItem } from '@angular/material/menu';
+import { MatBadge } from '@angular/material/badge';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { MatIcon } from '@angular/material/icon';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Notifications Tray Component
+ */
+@Component({
+  selector: 'mifosx-notifications-tray',
+  templateUrl: './notifications-tray.component.html',
+  styleUrls: ['./notifications-tray.component.scss'],
+  encapsulation: ViewEncapsulation.None,
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatIconButton,
+    MatTooltip,
+    MatMenuTrigger,
+    MatBadge,
+    FaIconComponent,
+    MatMenu,
+    MatIcon,
+    MatMenuItem
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class NotificationsTrayComponent implements OnInit, OnDestroy {
+  notificationsService = inject(NotificationsService);
+  private router = inject(Router);
+
+  /** Wait time between API status calls 60 seg */
+  waitTime = environment.waitTimeForNotifications || 60;
+  /** Read Notifications */
+  readNotifications: any[] = [];
+  /** Displayed Read Notifications */
+  displayedReadNotifications: any[] = [];
+  /** Unread Notifications */
+  unreadNotifications: any[] = [];
+  /** Timer to refetch notifications every 60 seconds */
+  timer: any;
+
+  /** track if timer is paused */
+  private timerPaused = false;
+
+  routeMap: any = {
+    client: '/clients/',
+    group: '/groups/',
+    loan: '/loans-accounts/',
+    center: '/centers/',
+    shareAccount: '/shares-accounts/',
+    fixedDeposit: '/fixed-deposits-accounts/',
+    recurringDepositAccount: '/recurring-deposits-accounts/',
+    savingsAccount: '/savings-accounts/',
+    shareProduct: '/products/share-products/',
+    loanProduct: '/products/loan-products/'
+  };
+
+  /**
+   * @param {NotificationsService} notificationsService Notifications Service
+   */
+  constructor() {
+    forkJoin([
+      this.notificationsService.getNotifications(true, 9),
+      this.notificationsService.getNotifications(false, 9)
+    ]).subscribe((response: any[]) => {
+      this.readNotifications = response[0].pageItems;
+      this.unreadNotifications = response[1].pageItems;
+      this.setNotifications();
+    });
+  }
+
+  ngOnInit() {
+    this.fetchUnreadNotifications();
+  }
+
+  ngOnDestroy() {
+    this.destroy();
+  }
+
+  public destroy() {
+    clearTimeout(this.timer);
+  }
+
+  setNotifications() {
+    const length = this.unreadNotifications.length;
+    this.displayedReadNotifications = length < 9 ? this.readNotifications.slice(0, 9 - length) : [];
+  }
+
+  /**
+   * Recursively fetch unread notifications.
+   */
+  fetchUnreadNotifications() {
+    // Clear any existing timer
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+
+    this.notificationsService.getNotifications(false, 9).subscribe((response: any) => {
+      this.unreadNotifications = response.pageItems; // Avoid concat duplication
+      this.setNotifications();
+    });
+
+    // Schedule next poll ONLY if not paused
+    if (!this.timerPaused) {
+      this.timer = setTimeout(() => {
+        this.fetchUnreadNotifications();
+      }, this.waitTime * 1000);
+    }
+  }
+
+  pauseTimer = () => {
+    this.timerPaused = true;
+    clearTimeout(this.timer);
+  };
+
+  resumeTimer = () => {
+    this.timerPaused = false;
+    this.fetchUnreadNotifications();
+  };
+  /**
+   * Update read/unread notifications.
+   */
+  menuClosed() {
+    // Update the server for read notifications.
+    this.notificationsService.updateNotifications().subscribe(() => {});
+    // Update locally for read notifications.
+    this.readNotifications = this.unreadNotifications.concat(this.readNotifications);
+    this.unreadNotifications = [];
+    this.setNotifications();
+  }
+
+  /**
+   * Function to test notifications in case of faulty backend.
+   */
+  mockNotifications() {
+    this.notificationsService.getMockUnreadNotification().subscribe((response: any) => {
+      this.unreadNotifications = this.unreadNotifications.concat(response.pageItems);
+      this.setNotifications();
+    });
+  }
+
+  /**
+   * Navigate to notification object with proper entity context
+   * @param {any} notification Notification object
+   * @param {Event} event Click event
+   */
+  navigateToNotification(notification: any, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const objectType = notification.objectType;
+    const objectId = notification.objectId;
+
+    // For entities that don't require parent context (client, group, center, products)
+    if ([
+        'client',
+        'group',
+        'center',
+        'shareProduct',
+        'loanProduct'
+      ].includes(objectType)) {
+      this.router.navigate([
+        this.routeMap[objectType],
+        objectId
+      ]);
+      return;
+    }
+
+    // For account types that require parent entity (client/group) ID
+    switch (objectType) {
+      case 'loan':
+        this.notificationsService.getLoanAccount(objectId).subscribe((account) => {
+          if (account && (account.clientId || account.groupId)) {
+            const entityType = account.clientId ? 'clients' : 'groups';
+            const entityId = account.clientId || account.groupId;
+            this.router.navigate([`/${entityType}/${entityId}/loans-accounts/${account.accountId}`]);
+          }
+        });
+        break;
+
+      case 'savingsAccount':
+        this.notificationsService.getSavingsAccount(objectId).subscribe((account) => {
+          if (account && (account.clientId || account.groupId)) {
+            const entityType = account.clientId ? 'clients' : 'groups';
+            const entityId = account.clientId || account.groupId;
+            this.router.navigate([`/${entityType}/${entityId}/savings-accounts/${account.accountId}`]);
+          }
+        });
+        break;
+
+      case 'fixedDeposit':
+        this.notificationsService.getFixedDepositAccount(objectId).subscribe((account) => {
+          if (account && (account.clientId || account.groupId)) {
+            const entityType = account.clientId ? 'clients' : 'groups';
+            const entityId = account.clientId || account.groupId;
+            this.router.navigate([`/${entityType}/${entityId}/fixed-deposits-accounts/${account.accountId}`]);
+          }
+        });
+        break;
+
+      case 'recurringDepositAccount':
+        this.notificationsService.getRecurringDepositAccount(objectId).subscribe((account) => {
+          if (account && (account.clientId || account.groupId)) {
+            const entityType = account.clientId ? 'clients' : 'groups';
+            const entityId = account.clientId || account.groupId;
+            this.router.navigate([`/${entityType}/${entityId}/recurring-deposits-accounts/${account.accountId}`]);
+          }
+        });
+        break;
+
+      case 'shareAccount':
+        this.notificationsService.getShareAccount(objectId).subscribe((account) => {
+          if (account && (account.clientId || account.groupId)) {
+            const entityType = account.clientId ? 'clients' : 'groups';
+            const entityId = account.clientId || account.groupId;
+            this.router.navigate([`/${entityType}/${entityId}/shares-accounts/${account.accountId}`]);
+          }
+        });
+        break;
+
+      default:
+        // Fallback to old behavior for unknown types
+        this.router.navigate([
+          this.routeMap[objectType],
+          objectId
+        ]);
+    }
+  }
+}

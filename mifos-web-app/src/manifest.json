@@ -1,0 +1,17 @@
+{
+  "short_name": "Mifos® X",
+  "name": "Mifos® X Web App",
+  "start_url": "/",
+  "scope": "/",
+  "theme_color": "#fff",
+  "background_color": "#fff",
+  "display": "standalone",
+  "description": "Mifos® X Web App is the default web application built on top of the Apache Fineract® platform for the Mifos® user community leveraging the popular Angular framework.",
+  "icons": [
+    {
+      "src": "assets/images/MifosX_logo.png",
+      "sizes": "182x184",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Dates } from 'app/core/utils/dates';
+
+/** Custom Services */
+import { SavingsService } from 'app/savings/savings.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Post Interest Savings Account Component
+ */
+@Component({
+  selector: 'mifosx-post-interest-as-on-savings-account',
+  templateUrl: './post-interest-as-on-savings-account.component.html',
+  styleUrls: ['./post-interest-as-on-savings-account.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class PostInterestAsOnSavingsAccountComponent implements OnInit {
+  private formBuilder = inject(FormBuilder);
+  private savingsService = inject(SavingsService);
+  private dateUtils = inject(Dates);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private settingsService = inject(SettingsService);
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum date allowed. */
+  maxDate = new Date();
+  /** Post Interest Savings Account form. */
+  postInterestSavingsAccountForm: FormGroup;
+  /** Savings Account Id */
+  accountId: any;
+
+  /**
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {SavingsService} savingsService Savings Service
+   * @param {Dates} dateUtils Date Utils
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   * @param {SettingsService} settingsService Setting service
+   */
+  constructor() {
+    this.accountId = this.route.snapshot.params['savingAccountId'];
+  }
+
+  /**
+   * Creates the post interest savings form.
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.createPostInterestSavingsAccountForm();
+  }
+
+  /**
+   * Creates the post interest savings account form.
+   */
+  createPostInterestSavingsAccountForm() {
+    this.postInterestSavingsAccountForm = this.formBuilder.group({
+      transactionDate: [
+        '',
+        Validators.required
+      ]
+    });
+  }
+
+  /**
+   * Submits the form and post interests of the saving account,
+   * if successful redirects to the saving account.
+   */
+  submit() {
+    const postInterestSavingsAccountFormData = this.postInterestSavingsAccountForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevTransactionDate: Date = this.postInterestSavingsAccountForm.value.transactionDate;
+    if (postInterestSavingsAccountFormData.transactionDate instanceof Date) {
+      postInterestSavingsAccountFormData.transactionDate = this.dateUtils.formatDate(prevTransactionDate, dateFormat);
+    }
+    const data = {
+      ...postInterestSavingsAccountFormData,
+      IsPostInterestAsOn: true,
+      dateFormat,
+      locale
+    };
+    this.savingsService
+      .executeSavingsAccountTransactionsCommand(this.accountId, 'postInterestAsOn', data)
+      .subscribe(() => {
+        this.router.navigate(['../../transactions'], { relativeTo: this.route });
+      });
+  }
+}

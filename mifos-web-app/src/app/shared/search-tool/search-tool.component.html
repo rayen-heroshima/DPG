@@ -1,0 +1,49 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<!-- Toolbar icon — always visible -->
+<button
+  mat-icon-button
+  class="search-toggle hide-lt-sm"
+  (click)="toggleSearchVisibility()"
+  [matTooltip]="'labels.text.Search' | translate"
+>
+  <fa-icon icon="search" size="lg"></fa-icon>
+</button>
+
+<!-- Spotlight modal -->
+@if (searchVisible) {
+  <div class="search-backdrop" [@backdropFade] (click)="closeModal()" role="dialog" aria-modal="true">
+    <div class="spotlight-wrap" [@modalSlide] (click)="$event.stopPropagation()">
+      <!-- Input row -->
+      <div class="spotlight-row">
+        <fa-icon icon="search" class="spotlight-icon"></fa-icon>
+
+        <input
+          #queryInput
+          class="spotlight-input"
+          type="text"
+          [formControl]="query"
+          [placeholder]="'labels.text.Search' | translate"
+          (keydown.enter)="search()"
+          autocomplete="off"
+          spellcheck="false"
+        />
+
+        <button
+          class="spotlight-go"
+          type="button"
+          (click)="search()"
+          [attr.aria-label]="'labels.text.Search' | translate"
+        >
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+}

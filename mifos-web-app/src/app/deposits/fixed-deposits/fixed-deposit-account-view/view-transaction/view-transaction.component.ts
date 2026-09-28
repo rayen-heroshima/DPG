@@ -1,0 +1,96 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
+import { UndoTransactionDialogComponent } from 'app/savings/savings-account-view/custom-dialogs/undo-transaction-dialog/undo-transaction-dialog.component';
+import { Dates } from 'app/core/utils/dates';
+import { SavingsService } from 'app/savings/savings.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { NgClass, CurrencyPipe } from '@angular/common';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { TransactionPaymentDetailComponent } from '../../../../shared/transaction-payment-detail/transaction-payment-detail.component';
+import { DateFormatPipe } from '../../../../pipes/date-format.pipe';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * View Transaction Component.
+ */
+@Component({
+  selector: 'mifosx-view-transaction',
+  templateUrl: './view-transaction.component.html',
+  styleUrls: ['./view-transaction.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    FaIconComponent,
+    NgClass,
+    TransactionPaymentDetailComponent,
+    CurrencyPipe,
+    DateFormatPipe
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ViewTransactionComponent {
+  private savingsService = inject(SavingsService);
+  private route = inject(ActivatedRoute);
+  private dateUtils = inject(Dates);
+  private router = inject(Router);
+  dialog = inject(MatDialog);
+  private settingsService = inject(SettingsService);
+
+  accountId: string;
+  transactionId: string;
+  /** Transaction data. */
+  transactionData: any;
+
+  /**
+   */
+  constructor() {
+    this.route.data.subscribe((data: { fixedDepositsAccountTransaction: any }) => {
+      this.accountId = this.route.parent.snapshot.params['fixedDepositAccountId'];
+      this.transactionData = data.fixedDepositsAccountTransaction;
+    });
+  }
+
+  transactionColor(): string {
+    if (this.transactionData.manuallyReversed) {
+      return 'undo';
+    }
+    return 'active';
+  }
+
+  allowUndo(): boolean {
+    return false;
+  }
+
+  undoTransaction(): void {
+    const undoTransactionAccountDialogRef = this.dialog.open(UndoTransactionDialogComponent);
+    undoTransactionAccountDialogRef.afterClosed().subscribe((response: any) => {
+      if (response.confirm) {
+        const locale = this.settingsService.language.code;
+        const dateFormat = this.settingsService.dateFormat;
+        const data = {
+          transactionDate: this.dateUtils.formatDate(
+            this.transactionData.date && new Date(this.transactionData.date),
+            dateFormat
+          ),
+          transactionAmount: 0,
+          dateFormat,
+          locale
+        };
+        this.savingsService
+          .executeSavingsAccountTransactionsCommand(this.accountId, 'undo', data, this.transactionData.id)
+          .subscribe(() => {
+            this.router.navigate(['../'], { relativeTo: this.route });
+          });
+      }
+    });
+  }
+}

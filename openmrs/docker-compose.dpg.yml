@@ -1,0 +1,3 @@
+# Local DPG setup: run with `docker compose -f docker-compose.yml -f docker-compose.dpg.yml up -d`
+# (listing files explicitly skips docker-compose.override.yml, which builds from source).
+name: openmrs

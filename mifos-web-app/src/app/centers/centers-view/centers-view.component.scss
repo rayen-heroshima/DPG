@@ -1,0 +1,23 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+@use 'assets/styles/entity-header' as entity;
+
+/* Shared entity-header system: tokens, projected header content and tabs. */
+@include entity.tokens;
+@include entity.header-content;
+@include entity.tabs;
+
+.account-overview {
+  min-width: 85%;
+  margin-left: 10px;
+}
+
+.make-flex {
+  display: flex;
+}

@@ -1,0 +1,255 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  TemplateRef,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  inject
+} from '@angular/core';
+import { ActivatedRoute, Router, NavigationEnd, RouterLink } from '@angular/router';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
+import { environment } from '../../environments/environment';
+
+/** rxjs Imports */
+import { Observable } from 'rxjs';
+import { startWith, map } from 'rxjs/operators';
+
+/** Custom Imports. */
+import { activities } from './activities';
+import { WarningDialogComponent } from './warning-dialog/warning-dialog.component';
+
+/** Custom Services */
+import { AuthenticationService } from '../core/authentication/authentication.service';
+import { PopoverService } from '../configuration-wizard/popover/popover.service';
+import { ConfigurationWizardService } from '../configuration-wizard/configuration-wizard.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { TranslateService } from '@ngx-translate/core';
+
+/** Custom Components */
+import { NextStepDialogComponent } from '../configuration-wizard/next-step-dialog/next-step-dialog.component';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { MatCard, MatCardHeader, MatCardTitle, MatCardContent, MatCardImage } from '@angular/material/card';
+import { MatAutocompleteTrigger, MatAutocomplete, MatOption } from '@angular/material/autocomplete';
+import { AsyncPipe } from '@angular/common';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Home component.
+ */
+@Component({
+  selector: 'mifosx-home',
+  standalone: true,
+  templateUrl: './home.component.html',
+  styleUrls: ['./home.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    FaIconComponent,
+    MatCardHeader,
+    MatCardTitle,
+    MatAutocompleteTrigger,
+    MatAutocomplete,
+    MatCardImage,
+    AsyncPipe
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class HomeComponent implements OnInit, AfterViewInit {
+  private authenticationService = inject(AuthenticationService);
+  private activatedRoute = inject(ActivatedRoute);
+  private router = inject(Router);
+  private dialog = inject(MatDialog);
+  private configurationWizardService = inject(ConfigurationWizardService);
+  private popoverService = inject(PopoverService);
+  private settingsService = inject(SettingsService);
+  private translateService = inject(TranslateService);
+
+  enableGlobalDashboard = environment.enableGlobalDashboard === true;
+
+  /** Username of authenticated user. */
+  username: string;
+  /** Tenant name */
+  tenant: string;
+  /** Activity Form. */
+  activityForm: any;
+  /** Search Text. */
+  searchText: FormControl = new FormControl();
+  /** Filtered Activities. */
+  filteredActivities: Observable<any[]>;
+  /** All User Activities. */
+  allActivities: any[] = activities;
+
+  /* Reference of dashboard button */
+  @ViewChild('buttonDashboard', { static: false }) buttonDashboard: ElementRef<any>;
+  /* Template for popover on dashboard button */
+  @ViewChild('templateButtonDashboard', { static: false }) templateButtonDashboard: TemplateRef<any>;
+  /* Reference of search activity */
+  @ViewChild('searchActivity', { static: false }) searchActivity: ElementRef<any>;
+  /* Template for popover on search activity */
+  @ViewChild('templateSearchActivity', { static: false }) templateSearchActivity: TemplateRef<any>;
+
+  // All dependencies are injected using inject() above. No constructor needed.
+  constructor() {}
+
+  /**
+   * Sets the username of the authenticated user.
+   * Set Form.
+   */
+  ngOnInit() {
+    const credentials = this.authenticationService.getCredentials();
+    this.username = credentials.username;
+    this.tenant = this.tenantIdentifier();
+    this.allActivities = this.getPermittedActivities();
+    this.setFilteredActivities();
+    if (!this.authenticationService.hasDialogBeenShown()) {
+      this.dialog.open(WarningDialogComponent);
+      this.authenticationService.showDialog();
+    }
+  }
+
+  /**
+   * Sets filtered activities for autocomplete.
+   */
+  setFilteredActivities() {
+    this.filteredActivities = this.searchText.valueChanges.pipe(
+      map((activity: any) => (typeof activity === 'string' ? activity : activity?.activity)),
+      map((activityName: string) => (activityName ? this.filterActivity(activityName) : this.allActivities))
+    );
+  }
+
+  /**
+   * Filters activities.
+   * @param activityName Activity name to filter activity by.
+   * @returns {any} Filtered activities.
+   */
+  private filterActivity(activityName: string): any {
+    const filterValue = activityName.toLowerCase();
+    return this.allActivities.filter((activity) => this.activityLabel(activity).toLowerCase().includes(filterValue));
+  }
+
+  activityLabel(activity: any): string {
+    return this.translateService.instant(activity.activity);
+  }
+
+  private getPermittedActivities(): any[] {
+    return activities.filter((activity: any) => !activity.permission || this.hasPermission(activity.permission));
+  }
+
+  private hasPermission(permission: string): boolean {
+    if (!environment.productionModeEnableRBAC) {
+      return true;
+    }
+    const userPermissions = this.authenticationService.getCredentials()?.permissions ?? [];
+    return (
+      userPermissions.includes('ALL_FUNCTIONS') ||
+      (permission.startsWith('READ_') && userPermissions.includes('ALL_FUNCTIONS_READ')) ||
+      userPermissions.includes(permission)
+    );
+  }
+
+  /**
+   * Popover function
+   * @param template TemplateRef<any>.
+   * @param target HTMLElement | ElementRef<any>.
+   * @param position String.
+   * @param backdrop Boolean.
+   */
+  showPopover(
+    template: TemplateRef<any>,
+    target: HTMLElement | ElementRef<any>,
+    position: string,
+    backdrop: boolean
+  ): void {
+    setTimeout(() => this.popoverService.open(template, target, position, backdrop, {}), 200);
+  }
+
+  /**
+   * To show popover.
+   */
+  ngAfterViewInit() {
+    if (this.configurationWizardService.showHome) {
+      setTimeout(() => {
+        this.showPopover(this.templateButtonDashboard, this.buttonDashboard.nativeElement, 'bottom', true);
+      });
+    }
+    if (this.configurationWizardService.showHomeSearchActivity) {
+      setTimeout(() => {
+        this.showPopover(this.templateSearchActivity, this.searchActivity.nativeElement, 'bottom', true);
+      });
+    }
+  }
+
+  /**
+   * Open Dialog for next step.
+   * Next Step (Organization) Configuration Wizard.
+   */
+  nextStep() {
+    this.configurationWizardService.showHome = false;
+    this.configurationWizardService.showHomeSearchActivity = false;
+    this.openNextStepDialog();
+  }
+
+  /**
+   * Next Step (Organization) Dialog Configuration Wizard.
+   */
+  openNextStepDialog() {
+    const nextStepDialogRef = this.dialog.open(NextStepDialogComponent, {
+      data: {
+        nextStepName: 'Setup Organization',
+        previousStepName: 'Home Tour',
+        stepPercentage: 10
+      }
+    });
+    nextStepDialogRef.afterClosed().subscribe((response: { nextStep: boolean }) => {
+      if (response.nextStep) {
+        this.configurationWizardService.showHome = false;
+        this.configurationWizardService.showHomeSearchActivity = false;
+        this.configurationWizardService.showCreateOffice = true;
+        this.router.navigate(['/organization']);
+      } else {
+        this.configurationWizardService.showHome = false;
+        this.configurationWizardService.showHomeSearchActivity = false;
+        this.router.navigate(['/home']);
+      }
+    });
+  }
+
+  /**
+   * Previous Step (Breadcrumbs) Configuration Wizard.
+   */
+  previousStep() {
+    this.configurationWizardService.showHome = false;
+    this.configurationWizardService.showHomeSearchActivity = false;
+    this.configurationWizardService.showBreadcrumbs = true;
+    this.router.routeReuseStrategy.shouldReuseRoute = () => false;
+    this.router.onSameUrlNavigation = 'reload';
+    this.router.navigate(['/home']);
+  }
+
+  tenantIdentifier() {
+    if (!this.settingsService.tenantIdentifier || this.settingsService.tenantIdentifier === '') {
+      return 'default';
+    }
+    return this.settingsService.tenantIdentifier;
+  }
+
+  onImageMissing(event: Event): void {
+    const target = event.currentTarget;
+    if (!(target instanceof HTMLImageElement)) {
+      return;
+    }
+    target.onerror = null;
+    target.src = `assets/images/default_home.png`;
+  }
+}

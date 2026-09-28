@@ -1,0 +1,117 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, Input, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, UntypedFormControl } from '@angular/forms';
+import { Dates } from 'app/core/utils/dates';
+
+/** Custom Services */
+import { SettingsService } from 'app/settings/settings.service';
+import { MatTooltip } from '@angular/material/tooltip';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { MatStepperPrevious, MatStepperNext } from '@angular/material/stepper';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+import { LoanProductBaseComponent } from '../../common/loan-product-base.component';
+
+@Component({
+  selector: 'mifosx-loan-product-details-step',
+  templateUrl: './loan-product-details-step.component.html',
+  styleUrls: ['./loan-product-details-step.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatTooltip,
+    MatCheckbox,
+    CdkTextareaAutosize,
+    MatStepperPrevious,
+    FaIconComponent,
+    MatStepperNext
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class LoanProductDetailsStepComponent extends LoanProductBaseComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private dateUtils = inject(Dates);
+  private settingsService = inject(SettingsService);
+
+  @Input() loanProductsTemplate: any;
+
+  loanProductDetailsForm: UntypedFormGroup;
+
+  fundData: any;
+
+  minDate = new Date(2000, 0, 1);
+  maxDate = new Date(new Date().setFullYear(new Date().getFullYear() + 10));
+
+  constructor() {
+    super();
+    this.createLoanProductDetailsForm();
+  }
+
+  ngOnInit() {
+    this.fundData = this.loanProductsTemplate.fundOptions;
+
+    this.loanProductDetailsForm.patchValue({
+      name: this.loanProductsTemplate.name,
+      shortName: this.loanProductsTemplate.shortName,
+      description: this.loanProductsTemplate.description,
+      externalId: this.loanProductsTemplate.externalId,
+      fundId: this.loanProductsTemplate.fundId,
+      startDate: this.loanProductsTemplate.startDate && new Date(this.loanProductsTemplate.startDate),
+      closeDate: this.loanProductsTemplate.closeDate && new Date(this.loanProductsTemplate.closeDate),
+      includeInBorrowerCycle: this.loanProductsTemplate.includeInBorrowerCycle
+    });
+  }
+
+  createLoanProductDetailsForm() {
+    this.loanProductDetailsForm = this.formBuilder.group({
+      name: [
+        '',
+        [
+          Validators.required,
+          Validators.maxLength(100)
+        ]
+      ],
+      shortName: [
+        '',
+        [
+          Validators.required,
+          Validators.maxLength(4)
+        ]
+      ],
+      description: [
+        '',
+        Validators.maxLength(500)
+      ],
+      externalId: [''],
+      fundId: [''],
+      startDate: [''],
+      closeDate: ['']
+    });
+
+    if (this.loanProductService.isLoanProduct) {
+      this.loanProductDetailsForm.addControl('includeInBorrowerCycle', new UntypedFormControl(false));
+    }
+  }
+
+  get loanProductDetails() {
+    const loanProductDetailsFormData = this.loanProductDetailsForm.value;
+    const prevStartDate: Date = this.loanProductDetailsForm.value.startDate;
+    const prevCloseDate: Date = this.loanProductDetailsForm.value.closeDate;
+    const dateFormat = this.settingsService.dateFormat;
+    if (loanProductDetailsFormData.startDate instanceof Date) {
+      loanProductDetailsFormData.startDate = this.dateUtils.formatDate(prevStartDate, dateFormat) || '';
+    }
+    if (loanProductDetailsFormData.closeDate instanceof Date) {
+      loanProductDetailsFormData.closeDate = this.dateUtils.formatDate(prevCloseDate, dateFormat) || '';
+    }
+    return loanProductDetailsFormData;
+  }
+}

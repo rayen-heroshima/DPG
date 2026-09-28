@@ -1,0 +1,64 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ApplicationRef, Injectable, inject } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ThemingService {
+  private ref = inject(ApplicationRef);
+
+  private darkModeOn = false;
+
+  themes = [
+    'dark-theme',
+    'light-theme'
+  ]; // <- list all themes in this array
+  theme = new BehaviorSubject('light-theme'); // <- initial theme
+
+  constructor() {
+    // Initially check if dark mode is enabled on system
+    this.darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    // If dark mode is enabled then directly switch to the dark-theme
+    this.setDarkMode(this.darkModeOn);
+
+    // Watch for changes of the preference
+    window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
+      const turnOn = e.matches;
+      this.theme.next(turnOn ? 'dark-theme' : 'light-theme');
+
+      // Trigger refresh of UI
+      this.ref.tick();
+    });
+  }
+
+  isDarkMode(): boolean {
+    this.darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return this.darkModeOn;
+  }
+
+  setDarkMode(isDarkMode: boolean) {
+    this.darkModeOn = isDarkMode;
+    if (isDarkMode) {
+      document.body.classList.add('dark-theme');
+      document.body.classList.remove('light-theme');
+      this.theme.next('dark-theme');
+    } else {
+      document.body.classList.add('light-theme');
+      document.body.classList.remove('dark-theme');
+      this.theme.next('light-theme');
+    }
+  }
+
+  setInitialDarkMode(): void {
+    this.setDarkMode(this.darkModeOn);
+  }
+}

@@ -1,0 +1,89 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { GroupsService } from '../../groups.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Groups Add Role Component
+ */
+@Component({
+  selector: 'mifosx-add-role',
+  templateUrl: './add-role.component.html',
+  styleUrls: ['./add-role.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class AddRoleComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private groupsService = inject(GroupsService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
+  /** Groups Add Role Form */
+  groupsAddRoleForm: UntypedFormGroup;
+  /** Client Member Data */
+  clientMemberData: any;
+  /** Role Data */
+  roleData: any;
+  /** Groups Account and Template Data */
+  groupAndTemplateData: any;
+
+  /**
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {GroupsService} groupsService Groups Service
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   */
+  constructor() {
+    this.route.data.subscribe((data: { groupAndTemplateData: any }) => {
+      this.groupAndTemplateData = data.groupAndTemplateData;
+    });
+  }
+
+  ngOnInit() {
+    this.clientMemberData = this.groupAndTemplateData.activeClientMembers;
+    this.roleData = this.groupAndTemplateData.availableRoles;
+    this.createGroupsAddRoleForm();
+  }
+
+  /**
+   * Creates the add group role form.
+   */
+  createGroupsAddRoleForm() {
+    this.groupsAddRoleForm = this.formBuilder.group({
+      clientId: [
+        '',
+        Validators.required
+      ],
+      role: [
+        '',
+        Validators.required
+      ]
+    });
+  }
+
+  /**
+   * Submits the form and assigns the group role.
+   */
+  submit() {
+    this.groupsService
+      .executeGroupCommand(this.groupAndTemplateData.id, 'assignRole', this.groupsAddRoleForm.value)
+      .subscribe(() => {
+        this.router.navigate(['../'], { relativeTo: this.route });
+      });
+  }
+}

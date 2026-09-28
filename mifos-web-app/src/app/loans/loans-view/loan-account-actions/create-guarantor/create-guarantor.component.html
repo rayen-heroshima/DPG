@@ -1,0 +1,175 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container mat-elevation-z8">
+  <mat-card>
+    <form [formGroup]="newGuarantorForm" (ngSubmit)="submit()">
+      <mat-card-content>
+        <div class="layout-column">
+          <mat-checkbox labelPosition="before" formControlName="existingClient">
+            {{ 'labels.inputs.Existing Client' | translate }}
+          </mat-checkbox>
+
+          @if (!showClientDetailsForm) {
+            <mat-form-field class="flex-30">
+              <mat-label>{{ 'labels.inputs.name' | translate }}</mat-label>
+              <input matInput formControlName="name" [matAutocomplete]="clientsAutocomplete" />
+              @if (newGuarantorForm.controls.name.hasError('required')) {
+                <mat-error>
+                  {{ 'errors.validation.requiredField' | translate: { label: ('labels.inputs.name' | translate) } }}
+                </mat-error>
+              }
+            </mat-form-field>
+            <mat-autocomplete
+              autoActiveFirstOption
+              #clientsAutocomplete="matAutocomplete"
+              [displayWith]="displayClient"
+              (optionSelected)="clientSelected($event.option.value)"
+            >
+              @for (client of clientsData; track client) {
+                <mat-option [value]="client">
+                  {{ client.displayName }}
+                </mat-option>
+              }
+            </mat-autocomplete>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Relationship' | translate }}</mat-label>
+              <mat-select formControlName="clientRelationshipTypeId">
+                @for (relationType of relationTypes; track relationType) {
+                  <mat-option [value]="relationType.id">
+                    {{ relationType.name }}
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            @if (accountOptions?.length > 0) {
+              <mat-form-field>
+                <mat-label>{{ 'labels.inputs.Account' | translate }}</mat-label>
+                <mat-select formControlName="savingsId">
+                  @for (accountOption of accountOptions; track accountOption) {
+                    <mat-option [value]="accountOption.id">
+                      {{ accountOption.productName }} - {{ accountOption.accountNo }}
+                    </mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field>
+                <mat-label>{{ 'labels.inputs.Amount' | translate }}</mat-label>
+                <input type="number" matInput formControlName="amount" />
+                @if (newGuarantorForm.controls.amount.hasError('required')) {
+                  <mat-error>
+                    {{ 'errors.validation.requiredField' | translate: { label: ('labels.inputs.Amount' | translate) } }}
+                  </mat-error>
+                }
+              </mat-form-field>
+            }
+          }
+
+          @if (showClientDetailsForm) {
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Relationship' | translate }}</mat-label>
+              <mat-select formControlName="clientRelationshipTypeId">
+                @for (relationType of relationTypes; track relationType) {
+                  <mat-option [value]="relationType.id">
+                    {{ relationType.name }}
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.First Name' | translate }}</mat-label>
+              <input matInput required formControlName="firstname" />
+              @if (newGuarantorForm.controls.firstname.hasError('required')) {
+                <mat-error>
+                  {{
+                    'errors.validation.requiredField' | translate: { label: ('labels.inputs.First Name' | translate) }
+                  }}
+                </mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Last Name' | translate }}</mat-label>
+              <input matInput required formControlName="lastname" />
+              @if (newGuarantorForm.controls.lastname.hasError('required')) {
+                <mat-error>
+                  {{
+                    'errors.validation.requiredField' | translate: { label: ('labels.inputs.Last Name' | translate) }
+                  }}
+                </mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field (click)="dobDatePicker.open()">
+              <mat-label>{{ 'labels.inputs.Date Of Birth' | translate }}</mat-label>
+              <input matInput [min]="minDate" [max]="maxDate" [matDatepicker]="dobDatePicker" formControlName="dob" />
+              <mat-datepicker-toggle matSuffix [for]="dobDatePicker"></mat-datepicker-toggle>
+              <mat-datepicker #dobDatePicker></mat-datepicker>
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Address Line 1' | translate }}</mat-label>
+              <input matInput formControlName="addressLine1" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Address Line 2' | translate }}</mat-label>
+              <input matInput formControlName="addressLine2" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.City' | translate }}</mat-label>
+              <input matInput formControlName="city" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Zip' | translate }}</mat-label>
+              <input matInput formControlName="zip" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Mobile' | translate }}</mat-label>
+              <input type="number" matInput formControlName="mobileNumber" />
+            </mat-form-field>
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Residence Phone' | translate }} #</mat-label>
+              <input type="number" matInput formControlName="housePhoneNumber" />
+            </mat-form-field>
+          }
+        </div>
+
+        <mat-card-actions class="layout-row align-center gap-5px responsive-column">
+          <button type="button" mat-raised-button (click)="gotoLoanDefaultView()">
+            {{ 'labels.buttons.Cancel' | translate }}
+          </button>
+          <button
+            mat-raised-button
+            color="primary"
+            [disabled]="!newGuarantorForm.valid"
+            *mifosxHasPermission="'CREATE_GUARANTOR'"
+          >
+            {{ 'labels.buttons.Submit' | translate }}
+          </button>
+        </mat-card-actions>
+      </mat-card-content>
+    </form>
+
+    @if (newGuarantorForm?.controls?.name?.value?.id) {
+      <div class="mat-table">
+        <div class="mat-header-row">
+          <div class="mat-header-cell">{{ 'labels.inputs.Client Details' | translate }}</div>
+        </div>
+        <div class="mat-row">
+          <div class="mat-cell">{{ 'labels.inputs.name' | translate }}</div>
+          <div class="mat-cell">{{ newGuarantorForm.controls.name.value.displayName }}</div>
+        </div>
+        <div class="mat-row">
+          <div class="mat-cell">{{ 'labels.inputs.Id' | translate }}</div>
+          <div class="mat-cell">{{ newGuarantorForm.controls.name.value.id }}</div>
+        </div>
+        <div class="mat-row">
+          <div class="mat-cell">{{ 'labels.inputs.Office' | translate }}</div>
+          <div class="mat-cell">{{ newGuarantorForm.controls.name.value.officeName }}</div>
+        </div>
+      </div>
+    }
+  </mat-card>
+</div>

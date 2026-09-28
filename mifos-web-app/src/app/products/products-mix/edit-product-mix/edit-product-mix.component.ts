@@ -1,0 +1,106 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { ProductsService } from '../../products.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Edit Product mix component.
+ */
+@Component({
+  selector: 'mifosx-edit-product-mix',
+  templateUrl: './edit-product-mix.component.html',
+  styleUrls: ['./edit-product-mix.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EditProductMixComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private productsService = inject(ProductsService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
+  /** Product mix form. */
+  productMixForm: UntypedFormGroup;
+  /** Products mix template data. */
+  productMixData: any;
+  /** Product option data. */
+  productOptionData: any;
+  /** Product data. */
+  productData: any;
+
+  /**
+   * Retrieves the Products mix template data from `resolve`.
+   * @param {FormBuilder} formBuilder Form Builder.
+   * @param {ProductsService} productsService Products Service.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Router} router Router for navigation.
+   */
+  constructor() {
+    this.route.data.subscribe((data: { productMix: any }) => {
+      this.productMixData = data.productMix;
+    });
+  }
+
+  /**
+   * Creates the product mix form and sets data of the product mix form.
+   */
+  ngOnInit() {
+    this.createProductMixForm();
+    this.setFormData();
+  }
+
+  /**
+   * Creates the product mix form
+   */
+  createProductMixForm() {
+    this.productMixForm = this.formBuilder.group({
+      productId: [{ value: this.productMixData.productName, disabled: true }],
+      restrictedProducts: [
+        '',
+        Validators.required
+      ]
+    });
+  }
+
+  /**
+   * Sets the conditional controls of the product mix form.
+   */
+  setFormData() {
+    const restrictedProductsData: {}[] = this.productMixData.restrictedProducts;
+    this.productData = [
+      ...restrictedProductsData,
+      ...this.productMixData.allowedProducts
+    ];
+    this.productMixForm
+      .get('restrictedProducts')
+      .setValue([...restrictedProductsData.map((restrictedProduct: any) => restrictedProduct.id)]);
+  }
+
+  /**
+   * Submits the product mix form and edits product mix,
+   * if successful redirects to products mix.
+   */
+  submit() {
+    const productMix = {
+      restrictedProducts: this.productMixForm.value.restrictedProducts
+    };
+    const productMixId = this.productMixData.productId;
+    this.productsService.updateProductMix(productMix, productMixId).subscribe((response: any) => {
+      this.router.navigate(['../'], { relativeTo: this.route });
+    });
+  }
+}

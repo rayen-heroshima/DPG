@@ -1,0 +1,113 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { RecurringDepositsService } from '../../recurring-deposits.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { Dates } from 'app/core/utils/dates';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Approve Recurring Deposits Account Component
+ */
+@Component({
+  selector: 'mifosx-approve-recurring-deposits-account',
+  templateUrl: './approve-recurring-deposits-account.component.html',
+  styleUrls: ['./approve-recurring-deposits-account.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    CdkTextareaAutosize
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ApproveRecurringDepositsAccountComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private recurringDepositsService = inject(RecurringDepositsService);
+  private dateUtils = inject(Dates);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private settingsService = inject(SettingsService);
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum date allowed. */
+  maxDate = new Date();
+  /** Approve Recurring Deposits Account form. */
+  approveRecurringDepositsAccountForm: UntypedFormGroup;
+  /** Recurring Deposits Account Id */
+  accountId: any;
+
+  /**
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {RecurringDepositsService} recurringDepositsService Recurring Deposits Service
+   * @param {Dates} dateUtils Date Utils
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   * @param {SettingsService} settingsService Settings Service
+   */
+  constructor() {
+    this.accountId = this.route.parent.snapshot.params['recurringDepositAccountId'];
+  }
+
+  /**
+   * Creates the approve recurring deposits form.
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.createApproveRecurringDepositsAccountForm();
+  }
+
+  /**
+   * Creates the approve recurring deposits account form.
+   */
+  createApproveRecurringDepositsAccountForm() {
+    this.approveRecurringDepositsAccountForm = this.formBuilder.group({
+      approvedOnDate: [
+        '',
+        Validators.required
+      ],
+      note: ['']
+    });
+  }
+
+  /**
+   * Submits the form and approves the recurring deposit account,
+   * if successful redirects to the recurring deposit account.
+   */
+  submit() {
+    if (this.approveRecurringDepositsAccountForm.invalid) {
+      return;
+    }
+    const approveRecurringDepositsAccountFormData = this.approveRecurringDepositsAccountForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevApprovedOnDate: Date = this.approveRecurringDepositsAccountForm.value.approvedOnDate;
+    if (approveRecurringDepositsAccountFormData.approvedOnDate instanceof Date) {
+      approveRecurringDepositsAccountFormData.approvedOnDate = this.dateUtils.formatDate(
+        prevApprovedOnDate,
+        dateFormat
+      );
+    }
+    const data = {
+      ...approveRecurringDepositsAccountFormData,
+      dateFormat,
+      locale
+    };
+    this.recurringDepositsService
+      .executeRecurringDepositsAccountCommand(this.accountId, 'approve', data)
+      .subscribe(() => {
+        this.router.navigate(['../../'], { relativeTo: this.route });
+      });
+  }
+}

@@ -1,0 +1,317 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+.margin-v {
+  margin: 2em 0 0;
+}
+
+.flex-32 {
+  flex: 0 1 32%;
+  max-width: 32%;
+}
+
+.gap-2percent {
+  gap: 2%;
+}
+
+.align-center {
+  align-items: center;
+}
+
+.container {
+  margin: 16px auto;
+  max-width: 1200px;
+  width: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+:host ::ng-deep .mat-card {
+  padding: 24px;
+  margin: 12px 0;
+  border: 1px solid rgb(0 0 0 / 10%);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 8%);
+}
+
+:host ::ng-deep .mat-card-content {
+  padding: 0;
+}
+
+.flex-24 {
+  flex: 0 1 calc(25% - 15px);
+  max-width: calc(25% - 15px);
+  margin-right: 0;
+}
+
+.flex-48 {
+  flex: 0 1 calc(50% - 10px);
+  max-width: calc(50% - 10px);
+  margin-right: 0;
+}
+
+.responsive-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 18px;
+  align-items: flex-start;
+}
+
+.responsive-row:last-child {
+  margin-bottom: 0;
+}
+
+:host ::ng-deep .mat-form-field {
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+:host ::ng-deep .mat-form-field:last-child {
+  margin-right: 0;
+}
+
+:host ::ng-deep .responsive-row .mat-form-field {
+  min-height: 56px;
+}
+
+:host ::ng-deep .responsive-row .mat-form-field .mat-form-field-wrapper {
+  padding-bottom: 1.3438em;
+}
+
+:host ::ng-deep .mat-form-field-appearance-outline {
+  .mat-form-field-outline {
+    color: rgb(0 0 0 / 12%);
+  }
+}
+
+:host ::ng-deep .mat-form-field.mat-form-field-invalid {
+  .mat-form-field-outline-thick {
+    color: #f44336;
+    opacity: 1;
+  }
+}
+
+:host ::ng-deep .mat-error {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.section-divider {
+  margin: 26px 0 18px;
+  border-color: rgb(0 0 0 / 12%);
+}
+
+.form-section-title {
+  margin: 0 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgb(0 0 0 / 10%);
+  color: rgb(0 0 0 / 72%);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.identifier-edit-section,
+.datatable-edit-section {
+  margin-bottom: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+
+  h4 {
+    margin: 0;
+    color: rgb(0 0 0 / 70%);
+    font-size: 13px;
+    font-weight: 700;
+  }
+}
+
+.datatable-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.datatable-edit-record {
+  margin-bottom: 12px;
+  padding-bottom: 4px;
+  border: 0;
+  background: transparent;
+}
+
+.record-title {
+  margin: 0 0 10px;
+  color: rgb(0 0 0 / 60%);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.empty-state {
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgb(0 0 0 / 60%);
+  font-size: 13px;
+  font-style: italic;
+}
+
+:host ::ng-deep .mat-checkbox {
+  margin: 16px 0;
+}
+
+.datatable-yes-no {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+
+  label {
+    color: rgb(0 0 0 / 60%);
+    font-size: 12px;
+  }
+
+  mat-button-toggle-group {
+    width: 100%;
+  }
+
+  mat-button-toggle {
+    flex: 1;
+  }
+}
+
+:host ::ng-deep mat-card-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  padding: 18px 0 4px;
+  margin-top: 24px;
+  border-top: 1px solid rgb(0 0 0 / 12%);
+  width: 100%;
+}
+
+:host ::ng-deep mat-card-actions button {
+  min-width: 100px;
+  height: 36px;
+  padding: 0 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0.3px;
+  font-size: 13px;
+  margin: 0;
+}
+
+@media (width <= 1024px) {
+  .flex-24 {
+    flex: 0 1 calc(50% - 10px);
+    max-width: calc(50% - 10px);
+  }
+
+  .flex-48 {
+    flex: 0 1 100%;
+    max-width: 100%;
+  }
+}
+
+@media (width <= 768px) {
+  .flex-32,
+  .flex-24,
+  .flex-48 {
+    flex: 0 1 100%;
+    max-width: 100%;
+  }
+
+  .container {
+    margin: 12px auto;
+    padding: 0 16px;
+  }
+
+  :host ::ng-deep .mat-card {
+    padding: 18px;
+  }
+
+  .responsive-row {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .responsive-row .mat-form-field {
+    flex: 1 1 100%;
+    max-width: 100%;
+    margin-right: 0;
+  }
+}
+
+@media (width <= 600px) {
+  :host ::ng-deep mat-card-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  :host ::ng-deep mat-card-actions button {
+    width: 100%;
+    margin: 0;
+  }
+}
+
+@media (width <= 480px) {
+  :host ::ng-deep .mat-card {
+    padding: 14px;
+    margin: 8px 0;
+  }
+
+  .responsive-row {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .container {
+    padding: 0 12px;
+  }
+}
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+:host ::ng-deep form {
+  width: 100%;
+}
+
+:host ::ng-deep .mat-datepicker-toggle {
+  color: rgb(0 0 0 / 54%);
+}
+
+.external-id-status {
+  font-size: 12px;
+  font-weight: 500;
+
+  &.loading {
+    color: #1976d2;
+  }
+
+  &.success {
+    color: #388e3c;
+  }
+
+  &.error {
+    color: #d32f2f;
+  }
+}
+
+:host ::ng-deep .mat-select-panel {
+  max-height: 256px;
+}

@@ -1,0 +1,74 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { ProductsService } from 'app/products/products.service';
+
+/** Custom Components */
+import { TranslateService } from '@ngx-translate/core';
+import { DeleteDialogComponent } from '../../../shared/delete-dialog/delete-dialog.component';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * View Collateral Component
+ */
+@Component({
+  selector: 'mifosx-view-collateral',
+  templateUrl: './view-collateral.component.html',
+  styleUrls: ['./view-collateral.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    FaIconComponent
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ViewCollateralComponent {
+  private productsService = inject(ProductsService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private dialog = inject(MatDialog);
+  private translateService = inject(TranslateService);
+
+  /** Collateral Data */
+  collateralData: any;
+
+  /**
+   * Retrieves the Collateral Data from 'resolve.
+   * @param {ProductsService} productsService Products Service.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Router} router Router for navigation.
+   * @param {MatDialog} dialog Dialog reference.
+   * @param {TranslateService} translateService Translate Service.
+   */
+  constructor() {
+    this.route.data.subscribe((data: { collateral: any }) => {
+      this.collateralData = data.collateral;
+    });
+  }
+
+  /**
+   * Deletes the collateral and redirects to collaterals
+   */
+  deleteCollateral() {
+    const deleteCollateralDialogRef = this.dialog.open(DeleteDialogComponent, {
+      data: { deleteContext: this.translateService.instant('labels.text.Collateral') + ' ' + this.collateralData.id }
+    });
+    deleteCollateralDialogRef.afterClosed().subscribe((response: any) => {
+      if (response.delete) {
+        this.productsService.deleteCollateral(this.collateralData.id).subscribe(() => {
+          this.router.navigate(['/products/collaterals']);
+        });
+      }
+    });
+  }
+}

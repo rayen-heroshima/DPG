@@ -1,0 +1,65 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormControl, ReactiveFormsModule } from '@angular/forms';
+import { SettingsService } from 'app/settings/settings.service';
+import { AlertService } from 'app/core/alert/alert.service';
+import { TranslateService } from '@ngx-translate/core';
+import { MatFormField, MatPrefix, MatLabel } from '@angular/material/form-field';
+import { M3IconComponent } from 'app/shared/m3-ui/m3-icon/m3-icon.component';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+@Component({
+  selector: 'mifosx-tenant-selector',
+  templateUrl: './tenant-selector.component.html',
+  styleUrls: ['./tenant-selector.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatPrefix,
+    M3IconComponent
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class TenantSelectorComponent implements OnInit {
+  private settingsService = inject(SettingsService);
+  private alertService = inject(AlertService);
+  private translateService = inject(TranslateService);
+
+  /** Tenant selector form control. */
+  tenantSelector = new UntypedFormControl();
+
+  ngOnInit(): void {
+    this.tenantSelector.setValue(this.settingsService.tenantIdentifier);
+    if (this.tenants.length > 1) {
+      this.tenantSelector.enable;
+    } else {
+      this.tenantSelector.disable;
+    }
+  }
+
+  /**
+   * Returns all the languages supported by the application.
+   * @return {string[]} Supported languages.
+   */
+  get tenants(): string[] {
+    return this.settingsService.tenantIdentifiers || [];
+  }
+
+  setTenantIdentifier(): void {
+    this.settingsService.setTenantIdentifier(this.tenantSelector.value);
+    this.alertService.alert({
+      type: this.translateService.instant('errors.tenant.changed.type'),
+      message: this.tenantSelector.value
+    });
+  }
+
+  allowSelection(): boolean {
+    return this.tenants.length > 1;
+  }
+}

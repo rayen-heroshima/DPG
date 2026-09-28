@@ -1,0 +1,166 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<mat-card class="account-card">
+  <mat-card-header class="header layout-column">
+    <mat-card-title-group class="header-title-group">
+      <div class="profile-image-container">
+        <div>
+          <img
+            mat-card-md-image
+            class="profile-image"
+            matTooltip="{{ 'tooltips.Shares Account' | translate }}"
+            src="assets/images/shares_account_placeholder.png"
+          />
+        </div>
+      </div>
+
+      <div class="mat-typography account-card-title">
+        <mat-card-title>
+          <div class="layout-row responsive-column">
+            <div class="flex-60">
+              <h3>
+                <i
+                  class="fa fa-stop"
+                  [ngClass]="sharesAccountData.status.code | statusLookup"
+                  [matTooltip]="sharesAccountData.status.value"
+                ></i>
+                <span class="m-r-5">{{ 'labels.inputs.Share Product' | translate }} :</span>
+                <span class="m-r-5"
+                  ><mifosx-long-text textValue="{{ sharesAccountData.productName }}"></mifosx-long-text
+                ></span>
+                <mifosx-account-number
+                  accountNo="{{ sharesAccountData.accountNo }}"
+                  display="left"
+                ></mifosx-account-number>
+              </h3>
+              <span class="shares-overview">
+                <span class="m-r-10"
+                  >{{ 'labels.text.' + entityType | translate }} {{ 'labels.inputs.name' | translate }} :</span
+                >{{ sharesAccountData.clientName || sharesAccountData.groupName }}
+                @if (sharesAccountData.clientAccountNo) {
+                  <span class="m-l-10">
+                    <mifosx-account-number accountNo="{{ sharesAccountData.clientAccountNo }}"></mifosx-account-number>
+                  </span>
+                }
+              </span>
+              <div>
+                <table class="account-overview">
+                  <tbody>
+                    <tr>
+                      <td>{{ 'labels.inputs.Current Market Price' | translate }} :</td>
+                      <td>{{ sharesAccountData.currentMarketPrice | formatNumber }}</td>
+                    </tr>
+                    @if (sharesAccountData.lockinPeriod) {
+                      <tr>
+                        <td>{{ 'labels.inputs.Lockin Period' | translate }} :</td>
+                        <td>
+                          {{ sharesAccountData.lockinPeriod }}
+                          {{ sharesAccountData.lockPeriodTypeEnum.value | translateKey: 'catalogs' }}
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <span class="flex-auto"></span>
+            <div class="flex-40">
+              @if (buttonConfig.singleButtons.length > 0) {
+                <button
+                  mat-icon-button
+                  [matMenuTriggerFor]="accountMenu"
+                  aria-label="Share account actions"
+                  yPosition="below"
+                >
+                  <mat-icon matListIcon class="actions-menu">
+                    <fa-icon icon="bars" size="sm"></fa-icon>
+                  </mat-icon>
+                </button>
+              }
+            </div>
+          </div>
+        </mat-card-title>
+      </div>
+    </mat-card-title-group>
+
+    <mat-menu #accountMenu="matMenu">
+      @for (item of buttonConfig.singleButtons; track item) {
+        <button mat-menu-item *mifosxHasPermission="item.taskPermissionName" (click)="doAction(item.name)">
+          <mat-icon matListIcon>
+            <fa-icon icon="{{ item.icon }}" size="sm"></fa-icon>
+          </mat-icon>
+          <span>{{ 'labels.menus.' + item.name | translate }}</span>
+        </button>
+      }
+
+      @if (buttonConfig.options.length) {
+        <button mat-menu-item [matMenuTriggerFor]="More">{{ 'labels.menus.More' | translate }}</button>
+        <mat-menu #More="matMenu">
+          @for (option of buttonConfig.options; track option) {
+            <span>
+              <button mat-menu-item *mifosxHasPermission="option.taskPermissionName" (click)="doAction(option.name)">
+                {{ 'labels.menus.' + option.name | translate }}
+              </button>
+            </span>
+          }
+        </mat-menu>
+      }
+    </mat-menu>
+  </mat-card-header>
+
+  <mat-card-content class="content">
+    <nav mat-tab-nav-bar class="navigation-tabs" [tabPanel]="tabPanel">
+      <a
+        mat-tab-link
+        [routerLink]="['./general']"
+        routerLinkActive
+        #general="routerLinkActive"
+        [active]="general.isActive"
+        *mifosxHasPermission="'READ_SHAREACCOUNTPURCHASE'"
+      >
+        {{ 'labels.inputs.General' | translate }}
+      </a>
+      <a
+        mat-tab-link
+        [routerLink]="['./transactions']"
+        routerLinkActive
+        #transactions="routerLinkActive"
+        [active]="transactions.isActive"
+        *mifosxHasPermission="'READ_SHAREACCOUNTPURCHASE'"
+      >
+        {{ 'labels.inputs.Transactions' | translate }}
+      </a>
+      <a
+        mat-tab-link
+        [routerLink]="['./charges']"
+        routerLinkActive
+        #charges="routerLinkActive"
+        [active]="charges.isActive"
+        *mifosxHasPermission="'READ_SHAREACCOUNTCHARGE'"
+      >
+        {{ 'labels.inputs.Charges' | translate }}
+      </a>
+      <a
+        mat-tab-link
+        [routerLink]="['./dividends']"
+        routerLinkActive
+        #dividends="routerLinkActive"
+        [active]="dividends.isActive"
+        *mifosxHasPermission="'READ_SHAREACCOUNTDIVIDENDS'"
+      >
+        {{ 'labels.inputs.Dividends' | translate }}
+      </a>
+    </nav>
+
+    <mat-tab-nav-panel #tabPanel>
+      <router-outlet></router-outlet>
+    </mat-tab-nav-panel>
+  </mat-card-content>
+</mat-card>

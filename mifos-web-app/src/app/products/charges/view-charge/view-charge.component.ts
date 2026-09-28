@@ -1,0 +1,87 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { ProductsService } from 'app/products/products.service';
+
+/** Custom Components */
+import { TranslateService } from '@ngx-translate/core';
+import { DeleteDialogComponent } from '../../../shared/delete-dialog/delete-dialog.component';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { GlAccountDisplayComponent } from '../../../shared/accounting/gl-account-display/gl-account-display.component';
+import { YesnoPipe } from '../../../pipes/yesno.pipe';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * View Charge Component.
+ */
+@Component({
+  selector: 'mifosx-view-charge',
+  templateUrl: './view-charge.component.html',
+  styleUrls: ['./view-charge.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    FaIconComponent,
+    GlAccountDisplayComponent,
+    YesnoPipe
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ViewChargeComponent {
+  private productsService = inject(ProductsService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private dialog = inject(MatDialog);
+  private translateService = inject(TranslateService);
+
+  /** Charge data. */
+  chargeData: any;
+  /** Boolean for MinCap and MaxCap */
+  minCap: boolean;
+  maxCap: boolean;
+  /**
+   * Retrieves the charge data from `resolve`.
+   * @param {ProductsService} productsService Products Service.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Router} router Router for navigation.
+   * @param {MatDialog} dialog Dialog reference.
+   * @param {TranslateService} translateService Translate Service.
+   */
+  constructor() {
+    this.route.data.subscribe((data: { charge: any }) => {
+      this.chargeData = data.charge;
+      if (this.chargeData.minCap) {
+        this.minCap = true;
+      }
+      if (this.chargeData.maxCap) {
+        this.maxCap = true;
+      }
+    });
+  }
+
+  /**
+   * Deletes the charge and redirects to charges.
+   */
+  deleteCharge() {
+    const deleteChargeDialogRef = this.dialog.open(DeleteDialogComponent, {
+      data: { deleteContext: this.translateService.instant('labels.inputs.Charge') + ' ' + this.chargeData.id }
+    });
+    deleteChargeDialogRef.afterClosed().subscribe((response: any) => {
+      if (response.delete) {
+        this.productsService.deleteCharge(this.chargeData.id).subscribe(() => {
+          this.router.navigate(['/products/charges']);
+        });
+      }
+    });
+  }
+}

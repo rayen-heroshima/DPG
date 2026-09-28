@@ -1,0 +1,46 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { Injectable, inject } from '@angular/core';
+import { Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
+
+/** Custom Services */
+import { Logger } from '../logger/logger.service';
+import { AuthenticationService } from './authentication.service';
+
+/** Initialize logger */
+const log = new Logger('AuthenticationGuard');
+
+/**
+ * Route access authorization.
+ */
+@Injectable()
+export class AuthenticationGuard {
+  private router = inject(Router);
+  private authenticationService = inject(AuthenticationService);
+
+  /**
+   * Ensures route access is authorized only when user is authenticated, otherwise redirects to login.
+   *
+   * @returns {boolean} True if user is authenticated.
+   */
+  canActivate(_route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
+    if (this.authenticationService.isAuthenticated()) {
+      return true;
+    }
+
+    log.debug('User not authenticated, redirecting to login...');
+    this.authenticationService.logout(state.url);
+    this.router.navigate(['/login'], {
+      replaceUrl: true,
+      queryParams: { returnUrl: state.url }
+    });
+    return false;
+  }
+}

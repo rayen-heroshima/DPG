@@ -1,0 +1,181 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, ViewChild, inject } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+
+/** Custom Services */
+import { FixedDepositsService } from '../fixed-deposits.service';
+import { SettingsService } from 'app/settings/settings.service';
+
+/** Custom Components */
+import { FixedDepositAccountDetailsStepComponent } from '../fixed-deposit-account-stepper/fixed-deposit-account-details-step/fixed-deposit-account-details-step.component';
+import { FixedDepositAccountTermsStepComponent } from '../fixed-deposit-account-stepper/fixed-deposit-account-terms-step/fixed-deposit-account-terms-step.component';
+import { FixedDepositAccountSettingsStepComponent } from '../fixed-deposit-account-stepper/fixed-deposit-account-settings-step/fixed-deposit-account-settings-step.component';
+import { FixedDepositAccountChargesStepComponent } from '../fixed-deposit-account-stepper/fixed-deposit-account-charges-step/fixed-deposit-account-charges-step.component';
+import { Dates } from 'app/core/utils/dates';
+import { Currency } from 'app/shared/models/general.model';
+import { MatStepper, MatStepperIcon, MatStep, MatStepLabel } from '@angular/material/stepper';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { FixedDepositAccountInterestRateChartStepComponent } from '../fixed-deposit-account-stepper/fixed-deposit-account-interest-rate-chart-step/fixed-deposit-account-interest-rate-chart-step.component';
+import { FixedDepositAccountPreviewStepComponent } from '../fixed-deposit-account-stepper/fixed-deposit-account-preview-step/fixed-deposit-account-preview-step.component';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Edit Fixed Deposit Account Component
+ */
+@Component({
+  selector: 'mifosx-edit-fixed-deposit-account',
+  templateUrl: './edit-fixed-deposit-account.component.html',
+  styleUrls: ['./edit-fixed-deposit-account.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatStepper,
+    MatStepperIcon,
+    FaIconComponent,
+    MatStep,
+    MatStepLabel,
+    FixedDepositAccountDetailsStepComponent,
+    FixedDepositAccountTermsStepComponent,
+    FixedDepositAccountSettingsStepComponent,
+    FixedDepositAccountInterestRateChartStepComponent,
+    FixedDepositAccountChargesStepComponent,
+    FixedDepositAccountPreviewStepComponent
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EditFixedDepositAccountComponent {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private dateUtils = inject(Dates);
+  private fixedDepositsService = inject(FixedDepositsService);
+  private settingsService = inject(SettingsService);
+
+  /** Fixed Deposits Account Details Step */
+  @ViewChild(FixedDepositAccountDetailsStepComponent, { static: true })
+  fixedDepositsAccountDetailsStep: FixedDepositAccountDetailsStepComponent;
+  /** Fixed Deposits Account Terms Step */
+  @ViewChild(FixedDepositAccountTermsStepComponent, { static: true })
+  fixedDepositAccountTermsStep: FixedDepositAccountTermsStepComponent;
+  /** Fixed Deposits Account Settings Step */
+  @ViewChild(FixedDepositAccountSettingsStepComponent, { static: true })
+  fixedDepositAccountSettingsStep: FixedDepositAccountSettingsStepComponent;
+  /** Fixed Deposits Account Charges Step */
+  @ViewChild(FixedDepositAccountChargesStepComponent, { static: true })
+  fixedDepositAccountChargesStep: FixedDepositAccountChargesStepComponent;
+
+  /** Fixed Deposits Account Template */
+  fixedDepositsAccountAndTemplate: any;
+  /** Fixed Deposit Account Product Template */
+  fixedDepositsAccountProductTemplate: any;
+
+  currency: Currency;
+
+  /**
+   * Fetches FD account template from `resolve`
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   * @param {Dates} dateUtils Date Utils
+   * @param {FixedDepositsService} fixedDepositsService Fixed Deposits Service
+   * @param {SettingsService} settingsService Settings Service
+   */
+  constructor() {
+    this.route.data.subscribe((data: { fixedDepositsAccountAndTemplate: any }) => {
+      this.fixedDepositsAccountAndTemplate = data.fixedDepositsAccountAndTemplate;
+    });
+  }
+
+  /**
+   * Sets fixed deposits account product template.
+   * @param {any} $event API response
+   */
+  setTemplate($event: any) {
+    this.fixedDepositsAccountProductTemplate = $event;
+    this.currency = this.fixedDepositsAccountAndTemplate.currency;
+  }
+
+  /**
+   * Retrieves Fixed Deposit Account Details Form Data
+   */
+  get fixedDepositAccountDetailsForm() {
+    return this.fixedDepositsAccountDetailsStep.fixedDepositAccountDetailsForm;
+  }
+
+  /**
+   * Retrieves Fixed Deposit Account Terms Form Data
+   */
+  get fixedDepositAccountTermsForm() {
+    return this.fixedDepositAccountTermsStep.fixedDepositAccountTermsForm;
+  }
+
+  /**
+   * Retrieves Fixed Deposit Account Settings Form Data
+   */
+  get fixedDepositAccountSettingsForm() {
+    return this.fixedDepositAccountSettingsStep.fixedDepositAccountSettingsForm;
+  }
+
+  /**
+   * Checks if stepper is valid and not pristine.
+   */
+  get fixedDepositAccountFormValidAndNotPristine() {
+    return (
+      this.fixedDepositAccountDetailsForm.valid &&
+      this.fixedDepositAccountTermsForm.valid &&
+      this.fixedDepositAccountSettingsForm.valid &&
+      (!this.fixedDepositAccountDetailsForm.pristine ||
+        !this.fixedDepositAccountTermsForm.pristine ||
+        !this.fixedDepositAccountSettingsForm.pristine ||
+        !this.fixedDepositAccountChargesStep.pristine)
+    );
+  }
+
+  /**
+   * Creates the fixed deposit account object.
+   */
+  get fixedDepositAccount() {
+    return {
+      ...this.fixedDepositsAccountDetailsStep.fixedDepositAccountDetails,
+      ...this.fixedDepositAccountTermsStep.fixedDepositAccountTerms,
+      ...this.fixedDepositAccountSettingsStep.fixedDepositAccountSettings,
+      ...this.fixedDepositAccountChargesStep?.fixedDepositAccountCharges
+    };
+  }
+
+  /**
+   * Submits the fixed deposit form and creates a new fixed deposit account
+   */
+  submit() {
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const monthDayFormat = 'dd MMMM';
+    const fixedDepositAccount = {
+      ...this.fixedDepositAccount,
+      clientId: this.fixedDepositsAccountAndTemplate.clientId,
+      charges: this.fixedDepositAccount.charges.map((charge: any) => ({
+        chargeId: charge.id,
+        amount: charge.amount,
+        dueDate: charge.dueDate && this.dateUtils.formatDate(charge.dueDate, dateFormat),
+        feeOnMonthDay:
+          charge.feeOnMonthDay && this.dateUtils.formatDate([2000].concat(charge.feeOnMonthDay), monthDayFormat),
+        feeInterval: charge.feeInterval
+      })),
+      submittedOnDate: this.dateUtils.formatDate(this.fixedDepositAccount.submittedOnDate, dateFormat),
+      charts: [{ chartSlabs: this.fixedDepositsAccountProductTemplate.accountChart.chartSlabs }],
+      dateFormat,
+      monthDayFormat,
+      locale
+    };
+    this.fixedDepositsService
+      .updateFixedDepositAccount(this.fixedDepositsAccountAndTemplate.id, fixedDepositAccount)
+      .subscribe((response: any) => {
+        this.router.navigate(['../'], { relativeTo: this.route });
+      });
+  }
+}

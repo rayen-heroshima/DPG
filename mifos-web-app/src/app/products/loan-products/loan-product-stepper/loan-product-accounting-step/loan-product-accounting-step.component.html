@@ -1,0 +1,559 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<form [formGroup]="loanProductAccountingForm">
+  @if (loanProductService.isLoanProduct) {
+    <div class="layout-row-wrap gap-2px responsive-column">
+      <mat-radio-group
+        class="flex-98 layout-row gap-5percent layout-lt-md-column radio-group-spacing"
+        formControlName="accountingRule"
+      >
+        @for (accountingRule of accountingRuleData; track accountingRule; let i = $index) {
+          <mat-radio-button [value]="i + 1">
+            {{ 'labels.accounting.' + accountingRule | translate }}
+          </mat-radio-button>
+        }
+      </mat-radio-group>
+
+      <mat-divider class="flex-98"></mat-divider>
+
+      @if (loanProductAccountingForm.value.accountingRule >= 2 && loanProductAccountingForm.value.accountingRule <= 4) {
+        <div class="flex-100 layout-row-wrap responsive-column">
+          @if (isAccountingAccrualBased) {
+            <mat-checkbox class="flex-73" formControlName="enableAccrualActivityPosting">{{
+              'labels.inputs.Enable Accrual Activity Posting on Installment Due Date' | translate
+            }}</mat-checkbox>
+          }
+          <h4 class="mat-h4 flex-98">
+            {{ 'labels.heading.Assets' | translate }} / {{ 'labels.heading.Liabilities' | translate }}
+          </h4>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.fundSourceAccountId"
+            [glAccountList]="assetAndLiabilityAccountData"
+            [required]="true"
+            [inputLabel]="'Fund source'"
+          >
+          </mifosx-gl-account-selector>
+          <h4 class="mat-h4 flex-98">{{ 'labels.heading.Assets' | translate }}</h4>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.loanPortfolioAccountId"
+            [glAccountList]="assetAccountData"
+            [required]="true"
+            [inputLabel]="'Loan portfolio'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.transfersInSuspenseAccountId"
+            [glAccountList]="assetAccountData"
+            [required]="true"
+            [inputLabel]="'Transfer in suspense'"
+          >
+          </mifosx-gl-account-selector>
+          @if (
+            loanProductAccountingForm.value.accountingRule === 3 || loanProductAccountingForm.value.accountingRule === 4
+          ) {
+            <div class="flex-100 layout-row-wrap responsive-column">
+              <mifosx-gl-account-selector
+                class="flex-48"
+                [inputFormControl]="loanProductAccountingForm.controls.receivableInterestAccountId"
+                [glAccountList]="assetAccountData"
+                [required]="true"
+                [inputLabel]="'Interest Receivable'"
+              >
+              </mifosx-gl-account-selector>
+              <mifosx-gl-account-selector
+                class="flex-48"
+                [inputFormControl]="loanProductAccountingForm.controls.receivableFeeAccountId"
+                [glAccountList]="assetAccountData"
+                [required]="true"
+                [inputLabel]="'Fees Receivable'"
+              >
+              </mifosx-gl-account-selector>
+              <mifosx-gl-account-selector
+                class="flex-48"
+                [inputFormControl]="loanProductAccountingForm.controls.receivablePenaltyAccountId"
+                [glAccountList]="assetAccountData"
+                [required]="true"
+                [inputLabel]="'Penalties Receivable'"
+              >
+              </mifosx-gl-account-selector>
+            </div>
+          }
+          <mat-divider class="flex-98"></mat-divider>
+          <h4 class="mat-h4 flex-98">{{ 'labels.heading.Income' | translate }}</h4>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.interestOnLoanAccountId"
+            [glAccountList]="incomeAccountData"
+            [required]="true"
+            [inputLabel]="'Income from Interest'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.incomeFromFeeAccountId"
+            [glAccountList]="incomeAccountData"
+            [required]="true"
+            [inputLabel]="'Income from fees'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.incomeFromPenaltyAccountId"
+            [glAccountList]="incomeAccountData"
+            [required]="true"
+            [inputLabel]="'Income from penalties'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.incomeFromRecoveryAccountId"
+            [glAccountList]="incomeAccountData"
+            [required]="true"
+            [inputLabel]="'Income from Recovery Repayments'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.incomeFromChargeOffInterestAccountId"
+            [glAccountList]="incomeAccountData"
+            [required]="true"
+            [inputLabel]="'Income from ChargeOff Interest'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.incomeFromChargeOffFeesAccountId"
+            [glAccountList]="incomeAccountData"
+            [required]="true"
+            [inputLabel]="'Income from ChargeOff Fees'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.incomeFromChargeOffPenaltyAccountId"
+            [glAccountList]="incomeAccountData"
+            [required]="true"
+            [inputLabel]="'Income from ChargeOff Penalty'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.incomeFromGoodwillCreditInterestAccountId"
+            [glAccountList]="incomeAccountData"
+            [required]="true"
+            [inputLabel]="'Income from Goodwill Credit Interest'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.incomeFromGoodwillCreditFeesAccountId"
+            [glAccountList]="incomeAccountData"
+            [required]="true"
+            [inputLabel]="'Income from Goodwill Credit Fees'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.incomeFromGoodwillCreditPenaltyAccountId"
+            [glAccountList]="incomeAccountData"
+            [required]="true"
+            [inputLabel]="'Income from Goodwill Credit Penalty'"
+          >
+          </mifosx-gl-account-selector>
+          @if (deferredIncomeRecognition?.capitalizedIncome?.enableIncomeCapitalization) {
+            <mifosx-gl-account-selector
+              class="flex-48"
+              [inputFormControl]="loanProductAccountingForm.controls.incomeFromCapitalizationAccountId"
+              [glAccountList]="incomeAccountData"
+              [required]="true"
+              [inputLabel]="'Income capitalization'"
+            >
+            </mifosx-gl-account-selector>
+          }
+          @if (deferredIncomeRecognition?.buyDownFee?.enableBuyDownFee) {
+            <mifosx-gl-account-selector
+              class="flex-48"
+              [inputFormControl]="loanProductAccountingForm.controls.incomeFromBuyDownAccountId"
+              [glAccountList]="incomeAccountData"
+              [required]="true"
+              [inputLabel]="'Income from Buy down fees'"
+            >
+            </mifosx-gl-account-selector>
+          }
+          <mat-divider class="flex-98"></mat-divider>
+          <h4 class="mat-h4 flex-98">{{ 'labels.heading.Expenses' | translate }}</h4>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.writeOffAccountId"
+            [glAccountList]="expenseAccountData"
+            [required]="true"
+            [inputLabel]="'Losses written off'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.goodwillCreditAccountId"
+            [glAccountList]="expenseAccountData"
+            [required]="true"
+            [inputLabel]="'Expenses from Goodwill Credit'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.chargeOffExpenseAccountId"
+            [glAccountList]="expenseAccountData"
+            [required]="true"
+            [inputLabel]="'ChargeOff Expense'"
+          >
+          </mifosx-gl-account-selector>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.chargeOffFraudExpenseAccountId"
+            [glAccountList]="expenseAccountData"
+            [required]="true"
+            [inputLabel]="'ChargeOff Fraud Expense'"
+          >
+          </mifosx-gl-account-selector>
+          @if (
+            deferredIncomeRecognition?.buyDownFee?.enableBuyDownFee &&
+            deferredIncomeRecognition?.buyDownFee?.merchantBuyDownFee
+          ) {
+            <mifosx-gl-account-selector
+              class="flex-48"
+              [inputFormControl]="loanProductAccountingForm.controls.buyDownExpenseAccountId"
+              [glAccountList]="expenseAccountData"
+              [required]="true"
+              [inputLabel]="'Buy down fee Expense'"
+            >
+            </mifosx-gl-account-selector>
+          }
+          <mat-divider class="flex-98"></mat-divider>
+          <h4 class="mat-h4 flex-98">{{ 'labels.heading.Liabilities' | translate }}</h4>
+          <mifosx-gl-account-selector
+            class="flex-48"
+            [inputFormControl]="loanProductAccountingForm.controls.overpaymentLiabilityAccountId"
+            [glAccountList]="liabilityAccountData"
+            [required]="true"
+            [inputLabel]="'Over payment liability'"
+          >
+          </mifosx-gl-account-selector>
+          @if (
+            deferredIncomeRecognition?.capitalizedIncome?.enableIncomeCapitalization ||
+            deferredIncomeRecognition?.buyDownFee?.enableBuyDownFee
+          ) {
+            <mifosx-gl-account-selector
+              class="flex-48"
+              [inputFormControl]="loanProductAccountingForm.controls.deferredIncomeLiabilityAccountId"
+              [glAccountList]="liabilityAccountData"
+              [required]="true"
+              [inputLabel]="'Deferred income'"
+            >
+            </mifosx-gl-account-selector>
+          }
+          <mat-divider fxFlex="flex-98"></mat-divider>
+          <mat-checkbox class="flex-73" formControlName="advancedAccountingRules">{{
+            'labels.heading.Advanced Accounting Rules' | translate
+          }}</mat-checkbox>
+
+          @if (loanProductAccountingForm.value.advancedAccountingRules) {
+            <mifosx-advanced-accounting-mapping-rule
+              class="flex-100 m-t-10"
+              [textField]="'Fund Sources'"
+              [formType]="'PaymentFundSource'"
+              [formArray]="paymentChannelToFundSourceMappings"
+              [textHeading]="'Configure Fund Sources for Payment Channels'"
+              [paymentTypeData]="paymentTypeData"
+              [assetAccountData]="assetAccountData"
+              [accountingMappingOptions]="paymentTypeData"
+              (formChangeEvent)="formChangeEvent($event)"
+            ></mifosx-advanced-accounting-mapping-rule>
+            <mifosx-advanced-accounting-mapping-rule
+              class="flex-100 m-t-10"
+              [textField]="'Fees'"
+              [formType]="'FeesIncome'"
+              [formArray]="feeToIncomeAccountMappings"
+              [textHeading]="'Map Fees to Specific Income Accounts'"
+              [chargeData]="chargeData"
+              [incomeAndLiabilityAccountData]="incomeAndLiabilityAccountData"
+              [accountingMappingOptions]="chargeData"
+              (formChangeEvent)="formChangeEvent($event)"
+            ></mifosx-advanced-accounting-mapping-rule>
+            <mifosx-advanced-accounting-mapping-rule
+              class="flex-100 m-t-10"
+              [textField]="'Penalty'"
+              [formType]="'PenaltyIncome'"
+              [formArray]="penaltyToIncomeAccountMappings"
+              [textHeading]="'Map Penalties to Specific Income Accounts'"
+              [penaltyData]="penaltyData"
+              [incomeAccountData]="incomeAccountData"
+              [accountingMappingOptions]="penaltyData"
+              (formChangeEvent)="formChangeEvent($event)"
+            ></mifosx-advanced-accounting-mapping-rule>
+            <mifosx-advanced-accounting-mapping-rule
+              class="flex-100 m-t-10"
+              [textField]="'Charge-off reason'"
+              [formType]="'ChargeOffReasonExpense'"
+              [formArray]="chargeOffReasonToExpenseAccountMappings"
+              [textHeading]="'Map Charge-off reasons to Expense accounts'"
+              [expenseAccountData]="expenseAccountData"
+              [accountingMappingOptions]="chargeOffReasonOptions"
+              (formChangeEvent)="formChangeEvent($event)"
+            ></mifosx-advanced-accounting-mapping-rule>
+            <mifosx-advanced-accounting-mapping-rule
+              class="flex-100 m-t-10"
+              [textField]="'WriteOff Reason'"
+              [formType]="'WriteOffReasonToExpense'"
+              [formArray]="writeOffReasonsToExpenseMappings"
+              [textHeading]="'WriteOff reasons to Expense accounts'"
+              [expenseAccountData]="expenseAccountData"
+              [accountingMappingOptions]="writeOffReasonOptions"
+              (formChangeEvent)="formChangeEvent($event)"
+            ></mifosx-advanced-accounting-mapping-rule>
+          }
+        </div>
+      }
+    </div>
+  } @else if (loanProductService.isWorkingCapital) {
+    <div class="flex-100 layout-row-wrap responsive-column">
+      <mat-radio-group
+        class="flex-98 layout-row gap-5percent layout-lt-md-column radio-group-spacing"
+        formControlName="accountingRule"
+      >
+        @for (accountingRule of accountingRuleData; track accountingRule; let i = $index) {
+          <mat-radio-button [value]="accountingRule">
+            {{ 'labels.accounting.' + accountingRule | translate }}
+          </mat-radio-button>
+        }
+      </mat-radio-group>
+
+      <mat-divider class="flex-98"></mat-divider>
+
+      @if (loanProductAccountingForm.value.accountingRule !== 'NONE') {
+        <h4 class="mat-h4 flex-98">
+          {{ 'labels.heading.Assets' | translate }} / {{ 'labels.heading.Liabilities' | translate }}
+        </h4>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.fundSourceAccountId"
+          [glAccountList]="assetAndLiabilityAccountData"
+          [required]="true"
+          [inputLabel]="'Fund source'"
+        >
+        </mifosx-gl-account-selector>
+
+        <h4 class="mat-h4 flex-98">{{ 'labels.heading.Assets' | translate }}</h4>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.loanPortfolioAccountId"
+          [glAccountList]="assetAccountData"
+          [required]="true"
+          [inputLabel]="'Loan portfolio'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.transfersInSuspenseAccountId"
+          [glAccountList]="assetAccountData"
+          [required]="true"
+          [inputLabel]="'Transfer in suspense'"
+        >
+        </mifosx-gl-account-selector>
+
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.receivableFeeAccountId"
+          [glAccountList]="assetAccountData"
+          [required]="true"
+          [inputLabel]="'Fees Receivable'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.receivablePenaltyAccountId"
+          [glAccountList]="assetAccountData"
+          [required]="true"
+          [inputLabel]="'Penalties Receivable'"
+        >
+        </mifosx-gl-account-selector>
+
+        <h4 class="mat-h4 flex-98">{{ 'labels.heading.Income' | translate }}</h4>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.incomeFromDiscountFeeAccountId"
+          [glAccountList]="incomeAccountData"
+          [required]="true"
+          [inputLabel]="'Income From Discount Fee'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.incomeFromFeeAccountId"
+          [glAccountList]="incomeAccountData"
+          [required]="true"
+          [inputLabel]="'Income from fees'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.incomeFromPenaltyAccountId"
+          [glAccountList]="incomeAccountData"
+          [required]="true"
+          [inputLabel]="'Income from penalties'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.incomeFromRecoveryAccountId"
+          [glAccountList]="incomeAccountData"
+          [required]="true"
+          [inputLabel]="'Income from Recovery Repayments'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.incomeFromChargeOffFeesAccountId"
+          [glAccountList]="incomeAccountData"
+          [required]="false"
+          [inputLabel]="'Income from ChargeOff Fees'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.incomeFromChargeOffPenaltyAccountId"
+          [glAccountList]="incomeAccountData"
+          [required]="false"
+          [inputLabel]="'Income from ChargeOff Penalty'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.incomeFromGoodwillCreditFeesAccountId"
+          [glAccountList]="incomeAccountData"
+          [required]="false"
+          [inputLabel]="'Income from Goodwill Credit Fees'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.incomeFromGoodwillCreditPenaltyAccountId"
+          [glAccountList]="incomeAccountData"
+          [required]="false"
+          [inputLabel]="'Income from Goodwill Credit Penalty'"
+        >
+        </mifosx-gl-account-selector>
+
+        <h4 class="mat-h4 flex-98">{{ 'labels.heading.Expenses' | translate }}</h4>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.writeOffAccountId"
+          [glAccountList]="expenseAccountData"
+          [required]="true"
+          [inputLabel]="'Losses written off'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.goodwillCreditAccountId"
+          [glAccountList]="expenseAccountData"
+          [required]="false"
+          [inputLabel]="'Expenses from Goodwill Credit'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.chargeOffExpenseAccountId"
+          [glAccountList]="expenseAccountData"
+          [required]="false"
+          [inputLabel]="'ChargeOff Expense'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.chargeOffFraudExpenseAccountId"
+          [glAccountList]="expenseAccountData"
+          [required]="false"
+          [inputLabel]="'ChargeOff Fraud Expense'"
+        >
+        </mifosx-gl-account-selector>
+
+        <h4 class="mat-h4 flex-98">{{ 'labels.heading.Liabilities' | translate }}</h4>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.overpaymentLiabilityAccountId"
+          [glAccountList]="liabilityAccountData"
+          [required]="true"
+          [inputLabel]="'Over payment liability'"
+        >
+        </mifosx-gl-account-selector>
+        <mifosx-gl-account-selector
+          class="flex-48"
+          [inputFormControl]="loanProductAccountingForm.controls.deferredIncomeLiabilityAccountId"
+          [glAccountList]="liabilityAccountData"
+          [required]="true"
+          [inputLabel]="'Deferred income'"
+        >
+        </mifosx-gl-account-selector>
+        <mat-divider fxFlex="flex-98"></mat-divider>
+        <mat-checkbox class="flex-73" formControlName="advancedAccountingRules">{{
+          'labels.heading.Advanced Accounting Rules' | translate
+        }}</mat-checkbox>
+
+        @if (loanProductAccountingForm.value.advancedAccountingRules) {
+          <div class="flex-100 layout-row-wrap responsive-column">
+            <mifosx-advanced-accounting-mapping-rule
+              class="flex-100 m-t-10"
+              [textField]="'Fund Sources'"
+              [formType]="'PaymentFundSource'"
+              [formArray]="paymentChannelToFundSourceMappings"
+              [textHeading]="'Configure Fund Sources for Payment Channels'"
+              [paymentTypeData]="paymentTypeData"
+              [assetAccountData]="assetAccountData"
+              [accountingMappingOptions]="paymentTypeData"
+              (formChangeEvent)="formChangeEvent($event)"
+            ></mifosx-advanced-accounting-mapping-rule>
+            <mifosx-advanced-accounting-mapping-rule
+              class="flex-100 m-t-10"
+              [textField]="'Charge-off reason'"
+              [formType]="'ChargeOffReasonExpense'"
+              [formArray]="chargeOffReasonToExpenseAccountMappings"
+              [textHeading]="'Map Charge-off reasons to Expense accounts'"
+              [expenseAccountData]="expenseAccountData"
+              [accountingMappingOptions]="chargeOffReasonOptions"
+              (formChangeEvent)="formChangeEvent($event)"
+            ></mifosx-advanced-accounting-mapping-rule>
+            <mifosx-advanced-accounting-mapping-rule
+              class="flex-100 m-t-10"
+              [textField]="'WriteOff Reason'"
+              [formType]="'WriteOffReasonToExpense'"
+              [formArray]="writeOffReasonsToExpenseMappings"
+              [textHeading]="'WriteOff reasons to Expense accounts'"
+              [expenseAccountData]="expenseAccountData"
+              [accountingMappingOptions]="writeOffReasonOptions"
+              (formChangeEvent)="formChangeEvent($event)"
+            ></mifosx-advanced-accounting-mapping-rule>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <div class="layout-row align-center margin-t responsive-column gap-2percent">
+    <button mat-raised-button matStepperPrevious>
+      <fa-icon icon="arrow-left" class="m-r-10"></fa-icon>
+      {{ 'labels.buttons.Previous' | translate }}
+    </button>
+    <button mat-raised-button matStepperNext [disabled]="!loanProductFormValid">
+      {{ 'labels.buttons.Next' | translate }}
+      <fa-icon icon="arrow-right" class="m-l-10"></fa-icon>
+    </button>
+  </div>
+</form>

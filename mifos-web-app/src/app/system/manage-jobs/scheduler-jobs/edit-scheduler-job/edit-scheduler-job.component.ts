@@ -1,0 +1,88 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { UntypedFormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+
+/** Custom Services */
+import { SystemService } from 'app/system/system.service';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Edit scheduler job component.
+ */
+@Component({
+  selector: 'mifosx-edit-scheduler-job',
+  templateUrl: './edit-scheduler-job.component.html',
+  styleUrls: ['./edit-scheduler-job.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatCheckbox
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EditSchedulerJobComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private systemService = inject(SystemService);
+  private router = inject(Router);
+  private formBuilder = inject(UntypedFormBuilder);
+
+  /** Job Data. */
+  jobData: any;
+  /** Job Form. */
+  jobForm: any;
+
+  /**
+   * Retrieves the selected job data from `resolve`.
+   * @param {FormBuilder} formBuilder Form Builder.
+   * @param {SystemService} systemService System Service.
+   * @param {Router} router Router for navigation.
+   * @param {ActivatedRoute} route Activated Route.
+   */
+  constructor() {
+    this.route.data.subscribe((data: { jobSelected: any }) => {
+      this.jobData = data.jobSelected;
+    });
+  }
+
+  /**
+   * Creates and sets job form.
+   */
+  ngOnInit() {
+    this.createJobForm();
+  }
+
+  /**
+   * Creates and sets job form.
+   */
+  createJobForm() {
+    this.jobForm = this.formBuilder.group({
+      displayName: [
+        this.jobData.displayName,
+        Validators.required
+      ],
+      cronExpression: [
+        this.jobData.cronExpression,
+        Validators.required
+      ],
+      active: [this.jobData.active]
+    });
+  }
+
+  /**
+   * Submits the edit job form.
+   */
+  submit() {
+    this.systemService.updateScheduler(this.jobData.jobId, this.jobForm.value).subscribe(() => {
+      this.router.navigate(['../'], { relativeTo: this.route });
+    });
+  }
+}

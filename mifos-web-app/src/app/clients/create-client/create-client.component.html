@@ -1,0 +1,81 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container">
+  <mat-stepper orientation="vertical" [linear]="false" class="mat-elevation-z8" labelPosition="bottom" #clientStepper>
+    <ng-template matStepperIcon="number">
+      <fa-icon icon="pencil-alt" size="sm"></fa-icon>
+    </ng-template>
+
+    <ng-template matStepperIcon="edit">
+      <fa-icon icon="pencil-alt" size="sm"></fa-icon>
+    </ng-template>
+
+    <ng-template matStepperIcon="done">
+      <fa-icon icon="check" size="sm"></fa-icon>
+    </ng-template>
+
+    <ng-template matStepperIcon="error">
+      <fa-icon icon="exclamation-triangle" size="lg"></fa-icon>
+    </ng-template>
+
+    <ng-template matStepperIcon="preview">
+      <fa-icon icon="eye" size="sm"></fa-icon>
+    </ng-template>
+
+    <mat-step [stepControl]="clientGeneralForm">
+      <ng-template matStepLabel>{{ 'labels.inputs.GENERAL' | translate }}</ng-template>
+
+      <mifosx-client-general-step
+        [clientTemplate]="clientTemplate"
+        (legalFormChangeEvent)="legalFormChange($event)"
+      ></mifosx-client-general-step>
+    </mat-step>
+
+    <mat-step>
+      <ng-template matStepLabel>{{ 'labels.inputs.FAMILY MEMBERS' | translate }}</ng-template>
+
+      <mifosx-client-family-members-step
+        #clientFamily
+        [clientTemplate]="clientTemplate"
+      ></mifosx-client-family-members-step>
+    </mat-step>
+
+    @if (clientTemplate.isAddressEnabled) {
+      <mat-step>
+        <ng-template matStepLabel>{{ 'labels.inputs.ADDRESS' | translate }}</ng-template>
+        <mifosx-client-address-step
+          #clientAddress
+          [clientTemplate]="clientTemplate"
+          [clientAddressFieldConfig]="clientAddressFieldConfig"
+        >
+        </mifosx-client-address-step>
+      </mat-step>
+    }
+
+    @for (datatable of datatables; track datatable) {
+      <mat-step>
+        <ng-template matStepLabel>{{ datatableLabel(datatable) }}</ng-template>
+        <mifosx-client-datatable-step [datatableData]="datatable" #dtclient></mifosx-client-datatable-step>
+      </mat-step>
+    }
+
+    @if (areFormvalids()) {
+      <mat-step completed>
+        <ng-template matStepLabel>{{ 'labels.inputs.PREVIEW' | translate }}</ng-template>
+        <mifosx-client-preview-step
+          [clientTemplate]="clientTemplate"
+          [clientAddressFieldConfig]="clientAddressFieldConfig"
+          [client]="client"
+          (submitEvent)="submit()"
+        >
+        </mifosx-client-preview-step>
+      </mat-step>
+    }
+  </mat-stepper>
+</div>

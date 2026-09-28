@@ -1,0 +1,86 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+@use 'assets/styles/helper';
+@use 'assets/styles/colours' as *;
+
+table {
+  width: 100%;
+  margin: 2% 0%;
+}
+
+.table-row {
+  font-size: small;
+}
+
+.container {
+  padding-bottom: 2%;
+  width: 98%;
+}
+
+.check {
+  padding-left: 15px;
+}
+
+.amount-changed {
+  color: $status-approved;
+}
+
+.principal-mismatch {
+  color: $msg-danger;
+  font-weight: 600;
+}
+
+.installment-deleted td {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+#repaymentScheduleEdit td.mat-mdc-footer-cell {
+  font-weight: 600;
+}
+
+.additional {
+  color: $status-approved;
+}
+
+.downpayment {
+  color: $status-downpayment;
+}
+
+.paid {
+  color: $status-paid;
+}
+
+.current {
+  color: $status-active;
+}
+
+.overdued {
+  color: $status-matured;
+}
+
+#repaymentSchedule,
+#repaymentScheduleEdit {
+  width: 100%;
+}
+
+.mat-header-cell {
+  color: rgb(0 0 0 / 54%);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+:host-context(.dark-theme) .mat-header-cell {
+  color: rgb(255 255 255 / 70%);
+}
+
+div.container {
+  overflow: auto;
+  max-width: 100%;
+}

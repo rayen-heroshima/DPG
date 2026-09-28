@@ -1,0 +1,139 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, AfterViewInit, inject } from '@angular/core';
+import { FormGroup, FormBuilder, UntypedFormControl, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Router, ActivatedRoute } from '@angular/router';
+
+/** Custom Dialogs */
+import { DeleteDialogComponent } from 'app/shared/delete-dialog/delete-dialog.component';
+
+/** Custom Services */
+import { GroupsService } from 'app/groups/groups.service';
+import { ClientsService } from 'app/clients/clients.service';
+import { MatDialog } from '@angular/material/dialog';
+import { MatAutocompleteTrigger, MatAutocomplete, MatOption } from '@angular/material/autocomplete';
+import { MatIconButton } from '@angular/material/button';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { MatListSubheaderCssMatStyler } from '@angular/material/list';
+import { MatTooltip } from '@angular/material/tooltip';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Manage Group Members Component
+ */
+@Component({
+  selector: 'mifosx-manage-group-members',
+  templateUrl: './manage-group-members.component.html',
+  styleUrls: ['./manage-group-members.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatAutocompleteTrigger,
+    MatAutocomplete,
+    MatIconButton,
+    FaIconComponent,
+    MatListSubheaderCssMatStyler,
+    MatTooltip
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ManageGroupMembersComponent implements AfterViewInit {
+  private route = inject(ActivatedRoute);
+  private groupsService = inject(GroupsService);
+  private clientsService = inject(ClientsService);
+  private changeDetectorRef = inject(ChangeDetectorRef);
+  dialog = inject(MatDialog);
+
+  /** Group Data */
+  groupData: any;
+  /** Client data. */
+  clientsData: any = [];
+  /** Client Members. */
+  clientMembers: any[] = [];
+  /** Client Choice. */
+  clientChoice = new UntypedFormControl('');
+
+  /**
+   * Fetches group action data from `resolve`
+   * @param {ActivatedRoute} route Activated Route
+   * @param {GroupsService} groupsService Groups Service
+   * @param {ClientsService} clientsService Clients Service
+   * @param {MatDialog} dialog Mat Dialog
+   */
+  constructor() {
+    this.route.data.subscribe((data: { groupActionData: any }) => {
+      this.groupData = data.groupActionData;
+      this.clientMembers = data.groupActionData.clientMembers || [];
+    });
+  }
+
+  /**
+   * Subscribes to Clients search filter:
+   */
+  ngAfterViewInit() {
+    this.clientChoice.valueChanges.subscribe((value: string) => {
+      if (value.length >= 2) {
+        this.clientsService
+          .getFilteredClients('displayName', 'ASC', true, value, this.groupData.officeId)
+          .subscribe((data: any) => {
+            this.clientsData = data.pageItems;
+            // Results arrive outside any template event: notify OnPush change detection.
+            this.changeDetectorRef.markForCheck();
+          });
+      }
+      // Selecting an autocomplete option happens in the CDK overlay, which does
+      // not mark this OnPush component dirty; refresh the client details panel.
+      this.changeDetectorRef.markForCheck();
+    });
+  }
+
+  /**
+   * Add client.
+   */
+  addClient() {
+    if (!this.clientMembers.includes(this.clientChoice.value)) {
+      this.groupsService
+        .executeGroupCommand(this.groupData.id, 'associateClients', { clientMembers: [this.clientChoice.value.id] })
+        .subscribe(() => {
+          this.clientMembers.push(this.clientChoice.value);
+          this.changeDetectorRef.markForCheck();
+        });
+    }
+  }
+
+  /**
+   * Remove client.
+   * @param {number} index Client's array index.
+   * @param {any} client Client
+   */
+  removeClient(index: number, client: any) {
+    const removeMemberDialogRef = this.dialog.open(DeleteDialogComponent, {
+      data: { deleteContext: `client member: ${client.displayName}` }
+    });
+    removeMemberDialogRef.afterClosed().subscribe((response: any) => {
+      if (response.delete) {
+        this.groupsService
+          .executeGroupCommand(this.groupData.id, 'disassociateClients', { clientMembers: [client.id] })
+          .subscribe(() => {
+            this.clientMembers.splice(index, 1);
+            this.changeDetectorRef.markForCheck();
+          });
+      }
+    });
+  }
+
+  /**
+   * Displays Client name in form control input.
+   * @param {any} client Client data.
+   * @returns {string} Client name if valid otherwise undefined.
+   */
+  displayClient(client: any): string | undefined {
+    return client ? client.displayName : undefined;
+  }
+}

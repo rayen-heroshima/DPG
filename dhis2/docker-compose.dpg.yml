@@ -1,0 +1,8 @@
+# Local DPG setup: remap ports so DHIS2 does not clash with other services on 8080/5432.
+name: dhis2
+services:
+  web:
+    ports: !override
+      - "127.0.0.1:8085:8080"
+  db:
+    ports: !reset []

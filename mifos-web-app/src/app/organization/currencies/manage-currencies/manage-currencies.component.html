@@ -1,0 +1,100 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container">
+  <mat-card>
+    <div #currencyFormRef class="currency-form-container">
+      <form #formRef="ngForm" [formGroup]="currencyForm" class="layout-row gap-20px">
+        <mat-form-field class="currency-search-field">
+          <mat-label>{{ 'labels.inputs.Currency' | translate }}</mat-label>
+          <mat-select required formControlName="currency">
+            <mat-option>
+              <ngx-mat-select-search
+                placeholderLabel="{{ placeHolderLabel }}"
+                noEntriesFoundLabel="{{ noEntriesFoundLabel }}"
+                [formControl]="filterFormCtrl"
+              ></ngx-mat-select-search>
+            </mat-option>
+            @for (currency of currencyData | async; track currency) {
+              <mat-option [value]="currency"> ({{ currency.code }}) {{ currency.name }} </mat-option>
+            }
+          </mat-select>
+          @if (currencyForm.controls.currency.hasError('required')) {
+            <mat-error>
+              {{ 'labels.inputs.Currency' | translate }} {{ 'labels.commons.is' | translate }}
+              <strong>{{ 'labels.commons.required' | translate }}</strong>
+            </mat-error>
+          }
+        </mat-form-field>
+
+        <button
+          type="submit"
+          mat-raised-button
+          class="add-currency-button"
+          color="primary"
+          [disabled]="!currencyForm.valid"
+          (click)="addCurrency()"
+          [attr.aria-label]="'labels.buttons.Add Currency' | translate"
+          [title]="'labels.buttons.Add Currency' | translate"
+          *mifosxHasPermission="'UPDATE_CURRENCY'"
+        >
+          <fa-icon icon="plus"></fa-icon>
+        </button>
+      </form>
+    </div>
+
+    <mat-grid-list cols="2" rowHeight="50px">
+      @for (currency of selectedCurrencies; track currency; let i = $index) {
+        <mat-grid-tile class="grid-tile-content">
+          <div class="grid-container">
+            <div>
+              <button
+                type="button"
+                mat-button
+                color="warn"
+                (click)="deleteCurrency(currency.code, i)"
+                [attr.aria-label]="'labels.buttons.Delete' | translate"
+                [title]="'labels.buttons.Delete' | translate"
+                *mifosxHasPermission="'UPDATE_CURRENCY'"
+              >
+                <fa-icon icon="trash"></fa-icon>
+              </button>
+            </div>
+            <span class="label m-l-10 p-t-5"
+              ><b>{{ currency.name }}</b></span
+            >
+          </div>
+        </mat-grid-tile>
+      }
+    </mat-grid-list>
+  </mat-card>
+</div>
+
+<ng-template #templateCurrencyFormRef let-popover="popover">
+  <h4>{{ 'labels.heading.Add Currency Form' | translate }}</h4>
+  <p class="mw400">
+    {{ 'labels.text.Used to add currency' | translate }}:
+    <a [href]="'currencyConfiguration' | documentationLink" target="_blank" rel="noopener noreferrer">{{
+      'labels.inputs.Currency Configuration' | translate
+    }}</a>
+  </p>
+  <div class="layout-row align-end gap-2px responsive-column">
+    <button mat-raised-button color="warn" (click)="popover.close(); configurationWizardService.closeConfigWizard()">
+      {{ 'labels.buttons.Close' | translate }}
+    </button>
+    <button mat-raised-button color="primary" (click)="popover.close()">
+      {{ 'labels.buttons.Add Currency' | translate }}
+    </button>
+    <button mat-raised-button color="primary" (click)="popover.close(); previousStep()">
+      {{ 'labels.buttons.Back' | translate }}
+    </button>
+    <button mat-raised-button color="primary" (click)="popover.close(); nextStep()">
+      {{ 'labels.buttons.Next' | translate }}
+    </button>
+  </div>
+</ng-template>

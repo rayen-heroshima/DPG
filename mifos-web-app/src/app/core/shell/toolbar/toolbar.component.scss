@@ -1,0 +1,140 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+#mifosx-toolbar {
+  position: relative;
+  box-shadow:
+    0 3px 1px -2px rgb(0 0 0 / 20%),
+    0 2px 2px 0 rgb(0 0 0 / 14%),
+    0 1px 5px 0 rgb(0 0 0 / 12%);
+
+  .tab-nav-bar {
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+  }
+
+  .tab-link {
+    min-width: auto;
+    padding: 15px 1rem;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    color: rgb(255 255 255 / 70%);
+
+    &:hover {
+      color: #fff;
+    }
+
+    cursor: pointer;
+  }
+
+  .search-bar {
+    .search {
+      max-width: 400px;
+      width: 100%;
+      font-size: 1rem;
+    }
+  }
+
+  .language {
+    font-size: 0.875rem;
+  }
+
+  .img-button {
+    img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+    }
+  }
+
+  .ml-1 {
+    margin-left: 1rem;
+  }
+
+  .mr-1 {
+    margin-right: 1rem;
+  }
+}
+
+// Show language icon button only on small screens (when full selector is hidden)
+.show-lt-md {
+  display: none;
+}
+
+@media (width <= 768px) {
+  .show-lt-md {
+    display: inline-flex;
+  }
+}
+
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+
+.white-text-language ::ng-deep mifosx-language-selector {
+  color: white !important;
+
+  // Target only Material form-field internals — leave custom elements free to set their own backgrounds
+  /* stylelint-disable selector-class-pattern */
+  .mat-mdc-form-field {
+    // Cancel the global form-field bottom margin so the toolbar can centre the
+    // control instead of it being nudged into place.
+    margin-bottom: 0;
+  }
+
+  // Material reserves a fixed-width infix that overflows the space the toolbar
+  // gives the selector, so the control is sized from the infix outwards.
+  .mat-mdc-form-field-infix {
+    width: 100px;
+  }
+
+  .mat-mdc-text-field-wrapper,
+  .mat-mdc-form-field-flex,
+  .mat-mdc-form-field-infix {
+    background-color: transparent !important;
+  }
+
+  .mat-mdc-floating-label,
+  .mdc-floating-label,
+  mat-label,
+  .mat-mdc-select,
+  .mat-mdc-select-value,
+  .mat-mdc-select-min-line,
+  .mat-mdc-select-arrow,
+  .mat-mdc-select-trigger {
+    color: white !important;
+  }
+  /* stylelint-enable selector-class-pattern */
+}
+
+.white-text-search ::ng-deep mifosx-search-tool {
+  color: white !important;
+
+  // Target only Material form-field internals — leave custom elements free to set their own backgrounds
+  /* stylelint-disable selector-class-pattern */
+  .mat-mdc-text-field-wrapper,
+  .mat-mdc-form-field-flex,
+  .mat-mdc-form-field-infix,
+  .mat-mdc-floating-label,
+  .mdc-text-field,
+  mat-label,
+  input {
+    background-color: transparent !important;
+    color: white !important;
+    margin-bottom: 0;
+  }
+
+  .mat-mdc-select-value,
+  .mat-mdc-select-arrow,
+  .mat-mdc-select-trigger {
+    color: white !important;
+  }
+  /* stylelint-enable selector-class-pattern */
+}

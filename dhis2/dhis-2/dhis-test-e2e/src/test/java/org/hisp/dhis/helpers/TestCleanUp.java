@@ -1,0 +1,164 @@
+/*
+ * Copyright (c) 2004-2022, University of Oslo
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its contributors 
+ * may be used to endorse or promote products derived from this software without
+ * specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package org.hisp.dhis.helpers;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.hisp.dhis.test.e2e.TestRunStorage;
+import org.hisp.dhis.test.e2e.actions.LoginActions;
+import org.hisp.dhis.test.e2e.actions.MaintenanceActions;
+import org.hisp.dhis.test.e2e.actions.RestApiActions;
+import org.hisp.dhis.test.e2e.dto.ApiResponse;
+
+/**
+ * @author Gintare Vilkelyte <vilkelyte.gintare@gmail.com>
+ */
+public class TestCleanUp {
+  private final Logger logger = LogManager.getLogger(TestCleanUp.class.getName());
+
+  private int deleteCount = 0;
+
+  /**
+   * Resources whose deletion is a soft delete and can leave rows behind that block deletion of
+   * referencing objects. Deleting any of these requires a follow-up {@code /maintenance} sweep to
+   * physically purge the soft-deleted rows. Everything else (plain metadata) is a hard delete and
+   * needs no sweep.
+   */
+  private static final Set<String> SOFT_DELETABLE_RESOURCES =
+      Set.of(
+          "trackedEntities",
+          "events",
+          "enrollments",
+          "relationships",
+          "dataValues",
+          "dataValueSets");
+
+  /**
+   * Deletes entities created during test run. Entities deleted one by one starting from last
+   * created one.
+   */
+  public void deleteCreatedEntities() {
+    Map<String, String> createdEntities = TestRunStorage.getCreatedEntities();
+    List<String> reverseOrderedKeys = new ArrayList<>(createdEntities.keySet());
+    Collections.reverse(reverseOrderedKeys);
+
+    boolean deletedSoftDeletableData = false;
+
+    for (String key : reverseOrderedKeys) {
+      String resource = createdEntities.get(key);
+      boolean deleted = deleteEntity(resource, key);
+      if (deleted) {
+        TestRunStorage.removeEntity(resource, key);
+        createdEntities.remove(key);
+        deletedSoftDeletableData |= requiresSoftDeleteMaintenance(resource);
+      }
+    }
+
+    // Purge soft-deleted rows once per pass, and only if this pass actually deleted
+    // tracker/data-value data. This previously ran after every single entity deletion, adding a
+    // full DB-wide maintenance sweep per entity - even for pure-metadata cleanups that never
+    // produce soft-deleted rows.
+    if (deletedSoftDeletableData) {
+      new MaintenanceActions().removeSoftDeletedData();
+    }
+
+    while (deleteCount < 2 && !createdEntities.isEmpty()) {
+      deleteCount++;
+      deleteCreatedEntities();
+    }
+
+    TestRunStorage.removeAllEntities();
+  }
+
+  private static boolean requiresSoftDeleteMaintenance(String resource) {
+    if (resource == null) {
+      return false;
+    }
+    String normalized = resource.startsWith("/") ? resource.substring(1) : resource;
+    return SOFT_DELETABLE_RESOURCES.contains(normalized);
+  }
+
+  /**
+   * Deletes entities created during test run.
+   *
+   * @param resources I.E /organisationUnits to delete created OU's.
+   */
+  public void deleteCreatedEntities(String... resources) {
+    new LoginActions().loginAsSuperUser();
+
+    for (String resource : resources) {
+      List<String> entityIds = TestRunStorage.getCreatedEntities(resource);
+
+      Iterator<String> iterator = entityIds.iterator();
+
+      while (iterator.hasNext()) {
+        boolean deleted = deleteEntity(resource, iterator.next());
+        if (deleted) {
+          iterator.remove();
+        }
+      }
+    }
+  }
+
+  public void deleteCreatedEntities(LinkedHashMap<String, String> entitiesToDelete) {
+
+    for (String key : entitiesToDelete.keySet()) {
+      deleteEntity(entitiesToDelete.get(key), key);
+    }
+  }
+
+  public boolean deleteEntity(String resource, String id) {
+    ApiResponse response = new RestApiActions(resource).delete(id + "?force=true");
+
+    if (response.statusCode() == 200 || response.statusCode() == 404) {
+      logger.info(String.format("Entity from resource %s with id %s deleted", resource, id));
+
+      if (response.containsImportSummaries()) {
+        return response.extract("response.importCount.deleted").equals(1);
+      }
+
+      return true;
+    }
+
+    logger.warn(
+        String.format(
+            "Entity from resource %s with id %s was not deleted. Status code: %s",
+            resource, id, response.statusCode()));
+
+    return false;
+  }
+}

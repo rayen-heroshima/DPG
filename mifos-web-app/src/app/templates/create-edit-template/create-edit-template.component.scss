@@ -1,0 +1,85 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+// Advanced Options button wrapper - aligns with Name field above
+.advanced-options-wrapper {
+  margin-bottom: 16px;
+}
+
+// Mapper row styling - adds space between Advanced Options button and Mapper Key field
+.mapper-row {
+  margin-top: 16px;
+  margin-bottom: 8px;
+
+  // Ensure buttons don't touch the right border
+  .mapper-button {
+    margin-left: 8px;
+  }
+}
+
+// Editor wrapper - prevents CKEditor from touching borders on left and right
+.editor-wrapper {
+  margin-top: 16px;
+
+  .required-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .required-asterisk {
+    color: #f44336;
+  }
+
+  // Header row: Text label on the left, plain text / HTML toggle on the right
+  .editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    .required-label {
+      margin-bottom: 0;
+    }
+
+    .text-format-toggle {
+      display: inline-flex;
+      gap: 8px;
+    }
+  }
+
+  // Plain text editor: stored verbatim, so no rich text chrome
+  .plain-text-field {
+    width: 100%;
+
+    textarea {
+      resize: vertical;
+    }
+  }
+
+  // CKEditor container spacing
+  ::ng-deep {
+    .ck-editor {
+      margin: 0;
+
+      .ck-editor__main {
+        .ck-content {
+          min-height: 200px;
+        }
+      }
+    }
+  }
+}
+
+// Ensure mat-card-content has consistent padding
+mat-card-content {
+  padding: 16px;
+}

@@ -1,0 +1,102 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, Input, inject } from '@angular/core';
+import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Dates } from 'app/core/utils/dates';
+
+/** Custom Services */
+import { SavingsService } from 'app/savings/savings.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Savings Account Unassign Staff Component
+ */
+@Component({
+  selector: 'mifosx-savings-account-unassign-staff',
+  templateUrl: './savings-account-unassign-staff.component.html',
+  styleUrls: ['./savings-account-unassign-staff.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class SavingsAccountUnassignStaffComponent implements OnInit {
+  private formBuilder = inject(FormBuilder);
+  private savingsService = inject(SavingsService);
+  private dateUtils = inject(Dates);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private settingsService = inject(SettingsService);
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum date allowed. */
+  maxDate = new Date();
+  /** Savings Account Unassign Staff form. */
+  savingsUnassignStaffForm: FormGroup;
+  /** Savings Account Id */
+  accountId: any;
+
+  /**
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {SavingsService} savingsService Savings Service
+   * @param {Dates} dateUtils Date Utils
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   * @param {SettingsService} settingsService Setting service
+   */
+  constructor() {
+    this.accountId = this.route.snapshot.params['savingAccountId'];
+  }
+
+  /**
+   * Creates the savings account unassign staff form.
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.createSavingsUnassignStaffForm();
+  }
+
+  /**
+   * Creates the savings account unassign staff form.
+   */
+  createSavingsUnassignStaffForm() {
+    this.savingsUnassignStaffForm = this.formBuilder.group({
+      unassignedDate: [
+        '',
+        Validators.required
+      ]
+    });
+  }
+
+  /**
+   * Submits the form and unassigns staff of the saving account,
+   * if successful redirects to the saving account.
+   */
+  submit() {
+    const savingsUnassignStaffFormData = this.savingsUnassignStaffForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevUnassignmentDate: Date = this.savingsUnassignStaffForm.value.unassignedDate;
+    if (savingsUnassignStaffFormData.unassignedDate instanceof Date) {
+      savingsUnassignStaffFormData.unassignedDate = this.dateUtils.formatDate(prevUnassignmentDate, dateFormat);
+    }
+    const data = {
+      ...savingsUnassignStaffFormData,
+      dateFormat,
+      locale
+    };
+    this.savingsService.executeSavingsAccountCommand(this.accountId, 'unassignSavingsOfficer', data).subscribe(() => {
+      this.router.navigate(['../../transactions'], { relativeTo: this.route });
+    });
+  }
+}

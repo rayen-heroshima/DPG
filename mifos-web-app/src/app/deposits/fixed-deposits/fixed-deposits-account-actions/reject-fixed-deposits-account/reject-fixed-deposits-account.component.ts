@@ -1,0 +1,105 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Dates } from 'app/core/utils/dates';
+
+/** Custom Services */
+import { FixedDepositsService } from 'app/deposits/fixed-deposits/fixed-deposits.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Reject Fixed Deposits Account Component
+ */
+@Component({
+  selector: 'mifosx-reject-fixed-deposits-account',
+  templateUrl: './reject-fixed-deposits-account.component.html',
+  styleUrls: ['./reject-fixed-deposits-account.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    CdkTextareaAutosize
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class RejectFixedDepositsAccountComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private fixedDepositsService = inject(FixedDepositsService);
+  private dateUtils = inject(Dates);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private settingsService = inject(SettingsService);
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum date allowed. */
+  maxDate = new Date();
+  /** Reject Fixed Deposit Account form. */
+  rejectFixedDepositsAccountForm: UntypedFormGroup;
+  /** Fixed Deposits Account Id */
+  accountId: any;
+
+  /**
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {FixedDepositsService} fixedDepositsService Fixed Deposits Service
+   * @param {Dates} dateUtils Date Utils
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   * @param {SettingsService} settingsService Settings Service
+   */
+  constructor() {
+    this.accountId = this.route.parent.snapshot.params['fixedDepositAccountId'];
+  }
+
+  /**
+   * Creates the reject fixed deposits form.
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.createRejectFixedDepositsAccountForm();
+  }
+
+  /**
+   * Creates the reject fixed deposits account form.
+   */
+  createRejectFixedDepositsAccountForm() {
+    this.rejectFixedDepositsAccountForm = this.formBuilder.group({
+      rejectedOnDate: [
+        '',
+        Validators.required
+      ],
+      note: ['']
+    });
+  }
+
+  /**
+   * Submits the form and rejects the fixed deposit account,
+   * if successful redirects to the fixed deposit account.
+   */
+  submit() {
+    const rejectFixedDepositsAccountFormData = this.rejectFixedDepositsAccountForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevRejectedOnDate: Date = this.rejectFixedDepositsAccountForm.value.rejectedOnDate;
+    if (rejectFixedDepositsAccountFormData.rejectedOnDate instanceof Date) {
+      rejectFixedDepositsAccountFormData.rejectedOnDate = this.dateUtils.formatDate(prevRejectedOnDate, dateFormat);
+    }
+    const data = {
+      ...rejectFixedDepositsAccountFormData,
+      dateFormat,
+      locale
+    };
+    this.fixedDepositsService.executeFixedDepositsAccountCommand(this.accountId, 'reject', data).subscribe(() => {
+      this.router.navigate(['../../'], { relativeTo: this.route });
+    });
+  }
+}

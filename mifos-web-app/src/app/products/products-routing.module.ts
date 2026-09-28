@@ -1,0 +1,1243 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { NgModule } from '@angular/core';
+import { Routes, RouterModule } from '@angular/router';
+
+/** Routing Imports */
+import { Route } from '../core/route/route.service';
+
+/** Custom Components */
+import { ProductsComponent } from './products.component';
+import { LoanProductsComponent } from './loan-products/loan-products.component';
+import { CreateLoanProductComponent } from './loan-products/create-loan-product/create-loan-product.component';
+import { CreateLoanProductClassicComponent } from './loan-products/create-loan-product-classic/create-loan-product-classic.component';
+import { LoanProductSelectionComponent } from './loan-products/create-loan-product/loan-product-selection.component';
+import { ViewLoanProductComponent } from './loan-products/view-loan-product/view-loan-product.component';
+import { EditLoanProductComponent } from './loan-products/edit-loan-product/edit-loan-product.component';
+import { SavingProductsComponent } from './saving-products/saving-products.component';
+import { CreateSavingProductComponent } from './saving-products/create-saving-product/create-saving-product.component';
+import { ViewSavingProductComponent } from './saving-products/view-saving-product/view-saving-product.component';
+import { EditSavingProductComponent } from './saving-products/edit-saving-product/edit-saving-product.component';
+import { ShareProductsComponent } from './share-products/share-products.component';
+import { CreateShareProductComponent } from './share-products/create-share-product/create-share-product.component';
+import { ViewShareProductComponent } from './share-products/view-share-product/view-share-product.component';
+import { EditShareProductComponent } from './share-products/edit-share-product/edit-share-product.component';
+import { ManageTaxConfigurationsComponent } from './manage-tax-configurations/manage-tax-configurations.component';
+import { RecurringDepositProductsComponent } from './recurring-deposit-products/recurring-deposit-products.component';
+import { ViewRecurringDepositProductComponent } from './recurring-deposit-products/view-recurring-deposit-product/view-recurring-deposit-product.component';
+import { ChargesComponent } from './charges/charges.component';
+import { ViewChargeComponent } from './charges/view-charge/view-charge.component';
+import { CreateChargeComponent } from './charges/create-charge/create-charge.component';
+import { TransferFeesComponent } from './transfer-fees/transfer-fees.component';
+import { CreateTransferFeeComponent } from './transfer-fees/create-transfer-fee/create-transfer-fee.component';
+import { ViewTransferFeeComponent } from './transfer-fees/view-transfer-fee/view-transfer-fee.component';
+import { EditTransferFeeComponent } from './transfer-fees/edit-transfer-fee/edit-transfer-fee.component';
+import { FixedDepositProductsComponent } from './fixed-deposit-products/fixed-deposit-products.component';
+import { CreateFixedDepositProductComponent } from './fixed-deposit-products/create-fixed-deposit-product/create-fixed-deposit-product.component';
+import { ProductsMixComponent } from './products-mix/products-mix.component';
+import { FloatingRatesComponent } from './floating-rates/floating-rates.component';
+import { CreateFloatingRateComponent } from './floating-rates/create-floating-rate/create-floating-rate.component';
+import { ViewFloatingRateComponent } from './floating-rates/view-floating-rate/view-floating-rate.component';
+import { EditFloatingRateComponent } from './floating-rates/edit-floating-rate/edit-floating-rate.component';
+import { ViewProductMixComponent } from './products-mix/view-product-mix/view-product-mix.component';
+import { ManageTaxComponentsComponent } from './manage-tax-components/manage-tax-components.component';
+import { ManageTaxGroupsComponent } from './manage-tax-groups/manage-tax-groups.component';
+import { ViewTaxComponentComponent } from './manage-tax-components/view-tax-component/view-tax-component.component';
+import { CreateTaxComponentComponent } from './manage-tax-components/create-tax-component/create-tax-component.component';
+import { EditTaxComponentComponent } from './manage-tax-components/edit-tax-component/edit-tax-component.component';
+import { ViewTaxGroupComponent } from './manage-tax-groups/view-tax-group/view-tax-group.component';
+import { ShareProductsDividendsComponent } from './share-products/dividends-share-product/dividends.components';
+import { CreateRecurringDepositProductComponent } from './recurring-deposit-products/create-recurring-deposit-product/create-recurring-deposit-product.component';
+import { CreateDividendComponent } from './share-products/create-dividend/create-dividend.component';
+import { ViewFixedDepositProductComponent } from './fixed-deposit-products/view-fixed-deposit-product/view-fixed-deposit-product.component';
+import { ViewDividendComponent } from './share-products/view-dividend/view-dividend.component';
+import { CreateTaxGroupComponent } from './manage-tax-groups/create-tax-group/create-tax-group.component';
+import { EditTaxGroupComponent } from './manage-tax-groups/edit-tax-group/edit-tax-group.component';
+import { CreateProductMixComponent } from './products-mix/create-product-mix/create-product-mix.component';
+import { CollateralsComponent } from './collaterals/collaterals.component';
+import { CreateCollateralComponent } from './collaterals/create-collateral/create-collateral.component';
+import { EditCollateralComponent } from './collaterals/edit-collateral/edit-collateral.component';
+import { ViewCollateralComponent } from './collaterals/view-collateral/view-collateral.component';
+
+/** Custom Resolvers */
+import { LoanProductsResolver } from './loan-products/loan-products.resolver';
+import { LoanProductsTemplateResolver } from './loan-products/loan-products-template.resolver';
+import { LoanProductResolver } from './loan-products/loan-product.resolver';
+import { LoanProductAndTemplateResolver } from './loan-products/edit-loan-product/loan-product-and-template.resolver';
+import { SavingProductsResolver } from './saving-products/saving-products.resolver';
+import { SavingProductsTemplateResolver } from './saving-products/saving-products-template.resolver';
+import { SavingProductResolver } from './saving-products/saving-product.resolver';
+import { SavingProductAndTemplateResolver } from './saving-products/edit-saving-product/saving-product-and-template.resolver';
+import { ShareProductsResolver } from './share-products/share-products.resolver';
+import { ShareProductsTemplateResolver } from './share-products/share-products-template.resolver';
+import { ShareProductResolver } from './share-products/share-product-resolver';
+import { ShareProductAndTemplateResolver } from './share-products/edit-share-product/share-product-and-template.resolver';
+import { RecurringDepositProductsResolver } from './recurring-deposit-products/recurring-deposit-products.resolver';
+import { RecurringDepositProductResolver } from './recurring-deposit-products/recurring-deposit-product.resolver';
+import { ChargesResolver } from './charges/charges.resolver';
+import { ChargeResolver } from './charges/charge.resolver';
+import { ChargesTemplateResolver } from './charges/charges-template.resolver';
+import { TransferFeesResolver } from './transfer-fees/transfer-fees.resolver';
+import { TransferFeeResolver } from './transfer-fees/transfer-fee.resolver';
+import { FixedDepositProductsResolver } from './fixed-deposit-products/fixed-deposit-products.resolver';
+import { FixedDepositProductsTemplateResolver } from './fixed-deposit-products/fixed-deposit-products-template.resolver';
+import { ProductsMixResolver } from './products-mix/products-mix.resolver';
+import { FloatingRatesResolver } from './floating-rates/floating-rates.resolver';
+import { FloatingRateResolver } from './floating-rates/floating-rate.resolver';
+import { ViewProductMixResolver } from './products-mix/view-product-mix/view-product-mix.resolver';
+import { ManageTaxComponentsResolver } from './manage-tax-components/manage-tax-components.resolver';
+import { ManageTaxGroupsResolver } from './manage-tax-groups/manage-tax-groups.resolver';
+import { TaxComponentResolver } from './manage-tax-components/tax-component.resolver';
+import { TaxComponentTemplateResolver } from './manage-tax-components/tax-component-template.resolver';
+import { EditChargeComponent } from './charges/edit-charge/edit-charge.component';
+import { TaxGroupResolver } from './manage-tax-groups/tax-group.resolver';
+import { DividendsResolver } from './share-products/dividends-share-product/dividends.resolver';
+import { RecurringDepositProductsTemplateResolver } from './recurring-deposit-products/recurring-deposit-products-template.resolver';
+import { EditRecurringDepositProductComponent } from './recurring-deposit-products/edit-recurring-deposit-product/edit-recurring-deposit-product.component';
+import { RecurringDepositProductAndTemplateResolver } from './recurring-deposit-products/edit-recurring-deposit-product/recurring-deposit-product-and-template.resolver';
+import { ViewDividendDataResolver } from './share-products/view-dividend/view-dividend-data.resolver';
+import { FixedDepositProductResolver } from './fixed-deposit-products/fixed-deposit-product.resolver';
+import { ManageTaxGroupTemplateResolver } from './manage-tax-groups/create-tax-group/manage-tax-group-template.resolver';
+import { EditTaxGroupResolver } from './manage-tax-groups/edit-tax-group/edit-tax-group.resolver';
+import { ProductsMixTemplateResolver } from './products-mix/products-mix-template.resolver';
+import { EditProductMixComponent } from './products-mix/edit-product-mix/edit-product-mix.component';
+import { ChargesTemplateAndResolver } from './charges/charges-template-and-resolver';
+import { EditFixedDepositProductComponent } from './fixed-deposit-products/edit-fixed-deposit-product/edit-fixed-deposit-product.component';
+import { FixedDepositProductAndTemplateResolver } from './fixed-deposit-products/edit-fixed-deposit-product/fixed-deposit-product-and-template.resolver';
+import { CollateralResolver } from './collaterals/collateral.resolver';
+import { CollateralsResolver } from './collaterals/collaterals.resolver';
+import { CollateralTemplateResolver } from './collaterals/collaterals-template.resolver';
+import { ManageDelinquencyBucketsComponent } from './manage-delinquency-buckets/manage-delinquency-buckets.component';
+import { DelinquencyBucketComponent } from './manage-delinquency-buckets/delinquency-bucket/delinquency-bucket.component';
+import { DelinquencyRangeComponent } from './manage-delinquency-buckets/delinquency-range/delinquency-range.component';
+import { DelinquencyBucketComponentsResolver } from './manage-delinquency-buckets/delinquency-bucket/delinquency-bucket.component.resolver';
+import { DelinquencyRangeComponentsResolver } from './manage-delinquency-buckets/delinquency-range/delinquency-range.component.resolver';
+import { ViewRangeComponent } from './manage-delinquency-buckets/delinquency-range/view-range/view-range.component';
+import { EditRangeComponent } from './manage-delinquency-buckets/delinquency-range/edit-range/edit-range.component';
+import { CreateRangeComponent } from './manage-delinquency-buckets/delinquency-range/create-range/create-range.component';
+import { CreateBucketComponent } from './manage-delinquency-buckets/delinquency-bucket/create-bucket/create-bucket.component';
+import { EditBucketComponent } from './manage-delinquency-buckets/delinquency-bucket/edit-bucket/edit-bucket.component';
+import { ViewBucketComponent } from './manage-delinquency-buckets/delinquency-bucket/view-bucket/view-bucket.component';
+import { LoanProductDatatablesResolver } from './loan-products/loan-product-datatables.resolver';
+import { GeneralTabComponent } from './loan-products/view-loan-product/general-tab/general-tab.component';
+import { DatatableTabComponent } from './loan-products/view-loan-product/datatable-tab/datatable-tab.component';
+import { LoanProductDatatableResolver } from './loan-products/loan-product-datatable.resolver';
+import { SavingProductDatatableResolver } from './saving-products/saving-product-datatable.resolver';
+import { SavingProductDatatablesResolver } from './saving-products/saving-product-datatables.resolver';
+import { SavingProductGeneralTabComponent } from './saving-products/view-saving-product/saving-product-general-tab/saving-product-general-tab.component';
+import { SavingProductDatatableTabComponent } from './saving-products/view-saving-product/saving-product-datatable-tab/saving-product-datatable-tab.component';
+import { FixedDepositGeneralTabComponent } from './fixed-deposit-products/view-fixed-deposit-product/fixed-deposit-general-tab/fixed-deposit-general-tab.component';
+import { FixedDepositDatatableTabComponent } from './fixed-deposit-products/view-fixed-deposit-product/fixed-deposit-datatable-tab/fixed-deposit-datatable-tab.component';
+import { RecurringDepositGeneralTabComponent } from './recurring-deposit-products/view-recurring-deposit-product/recurring-deposit-general-tab/recurring-deposit-general-tab.component';
+import { RecurringDepositDatatableTabComponent } from './recurring-deposit-products/view-recurring-deposit-product/recurring-deposit-datatable-tab/recurring-deposit-datatable-tab.component';
+import { ShareProductGeneralTabComponent } from './share-products/view-share-product/share-product-general-tab/share-product-general-tab.component';
+import { ShareProductDatatableTabComponent } from './share-products/view-share-product/share-product-datatable-tab/share-product-datatable-tab.component';
+import { ShareProductDatatablesResolver } from './share-products/share-product-datatables.resolver';
+import { ShareProductDatatableResolver } from './share-products/share-product-datatable.resolver';
+import { GlobalConfigurationsResolver } from 'app/system/configurations/global-configurations-tab/global-configurations.resolver';
+import { BreachConfigurationComponent } from './loan-products/working-capital/breach-configuration/breach-configuration.component';
+import { BreachesResolver } from './loan-products/working-capital/breach-configuration/breaches.resolver';
+import { BreachResolver } from './loan-products/working-capital/breach-configuration/breach.resolver';
+import { ViewBreachConfigurationComponent } from './loan-products/working-capital/breach-configuration/view-breach-configuration/view-breach-configuration.component';
+import { CreateBreachConfigurationComponent } from './loan-products/working-capital/breach-configuration/create-breach-configuration/create-breach-configuration.component';
+import { BreachTemplateResolver } from './loan-products/working-capital/breach-configuration/breach-template.resolver';
+import { EditBreachConfigurationComponent } from './loan-products/working-capital/breach-configuration/edit-breach-configuration/edit-breach-configuration.component';
+import { NearBreachConfigurationComponent } from './loan-products/working-capital/near-breach-configuration/near-breach-configuration.component';
+import { NearBreachesResolver } from './loan-products/working-capital/near-breach-configuration/near-breaches.resolver';
+import { CreateNearBreachConfigurationComponent } from './loan-products/working-capital/near-breach-configuration/create-near-breach-configuration/create-near-breach-configuration.component';
+import { NearBreachTemplateResolver } from './loan-products/working-capital/near-breach-configuration/near-breach-template.resolver';
+import { ViewNearBreachConfigurationComponent } from './loan-products/working-capital/near-breach-configuration/view-near-breach-configuration/view-near-breach-configuration.component';
+import { NearBreachResolver } from './loan-products/working-capital/near-breach-configuration/near-breach.resolver';
+import { EditNearBreachConfigurationComponent } from './loan-products/working-capital/near-breach-configuration/edit-near-breach-configuration/edit-near-breach-configuration.component';
+
+/** Products Routes */
+const routes: Routes = [
+  Route.withShell([
+    {
+      path: '',
+      data: { title: 'Products', breadcrumb: 'Products' },
+      children: [
+        {
+          path: '',
+          component: ProductsComponent
+        },
+        {
+          path: 'loan-products',
+          data: { title: 'Loan Products', breadcrumb: 'Loan Products' },
+          children: [
+            {
+              path: '',
+              component: LoanProductsComponent
+            },
+            {
+              path: 'create',
+              component: LoanProductSelectionComponent,
+              data: { title: 'Create Loan Product', breadcrumb: 'Create' }
+            },
+            {
+              path: 'create/classic',
+              component: CreateLoanProductClassicComponent,
+              data: { title: 'Create Loan Product', breadcrumb: 'Create' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'personal-loan',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create Personal Loan', breadcrumb: 'Personal Loan' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'custom-advanced',
+              component: CreateLoanProductComponent,
+              data: { title: 'Custom / Advanced Loan Configuration', breadcrumb: 'Custom / Advanced' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'two-wheeler-loan',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create Two Wheeler Loan', breadcrumb: 'Two Wheeler Loan' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'education-loan',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create Education Loan', breadcrumb: 'Education Loan' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'agriculture-loan',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create Agriculture Loan', breadcrumb: 'Agriculture Loan' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'bnpl-loan',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create BNPL Loan', breadcrumb: 'BNPL Loan' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'home-loan',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create Home Loan', breadcrumb: 'Home Loan' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'mortgage-loan',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create Mortgage Loan', breadcrumb: 'Mortgage Loan' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'gold-loan',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create Gold Loan', breadcrumb: 'Gold Loan' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'auto-loan',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create Auto Loan', breadcrumb: 'Auto Loan' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'jlg-loan',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create JLG Loan', breadcrumb: 'JLG Loan' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'consumer-durable-loan',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create Consumer Durable Loan', breadcrumb: 'Consumer Durable Loan' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'credit-card-emi-loan',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create Credit Card EMI Loan', breadcrumb: 'Credit Card EMI' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: 'loan-against-securities',
+              component: CreateLoanProductComponent,
+              data: { title: 'Create Loan vs Securities / FD', breadcrumb: 'Loan vs Securities / FD' },
+              resolve: {
+                loanProductsTemplate: LoanProductsTemplateResolver,
+                configurations: GlobalConfigurationsResolver
+              }
+            },
+            {
+              path: ':productId',
+              component: ViewLoanProductComponent,
+              resolve: {
+                loanProductDatatables: LoanProductDatatablesResolver
+              },
+              runGuardsAndResolvers: 'pathParamsOrQueryParamsChange',
+              data: { title: 'View Loan Product', breadcrumb: 'productId', routeParamBreadcrumb: 'productId' },
+              children: [
+                {
+                  path: '',
+                  redirectTo: 'general',
+                  pathMatch: 'full'
+                },
+                {
+                  path: 'general',
+                  data: { title: 'General', breadcrumb: 'General', routeParamBreadcrumb: false },
+                  component: GeneralTabComponent,
+                  runGuardsAndResolvers: 'pathParamsOrQueryParamsChange',
+                  resolve: {
+                    loanProduct: LoanProductResolver
+                  }
+                },
+                {
+                  path: 'datatables',
+                  children: [
+                    {
+                      path: ':datatableName',
+                      component: DatatableTabComponent,
+                      data: { title: 'Data Table View', routeParamBreadcrumb: 'datatableName' },
+                      runGuardsAndResolvers: 'pathParamsOrQueryParamsChange',
+                      resolve: {
+                        loanProductDatatable: LoanProductDatatableResolver
+                      }
+                    }
+                  ]
+                },
+                {
+                  path: 'edit',
+                  component: EditLoanProductComponent,
+                  data: { title: 'Edit Loan Product', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                  runGuardsAndResolvers: 'pathParamsOrQueryParamsChange',
+                  resolve: {
+                    loanProductAndTemplate: LoanProductAndTemplateResolver,
+                    configurations: GlobalConfigurationsResolver
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'saving-products',
+          data: { title: 'Saving Products', breadcrumb: 'Saving Products' },
+          children: [
+            {
+              path: '',
+              component: SavingProductsComponent,
+              resolve: {
+                savingProducts: SavingProductsResolver
+              }
+            },
+            {
+              path: 'create',
+              component: CreateSavingProductComponent,
+              data: { title: 'Create Savings Product', breadcrumb: 'Create' },
+              resolve: {
+                savingProductsTemplate: SavingProductsTemplateResolver
+              }
+            },
+            {
+              path: ':productId',
+              data: { title: 'View Saving Product', breadcrumb: 'productId', routeParamBreadcrumb: 'productId' },
+              resolve: {
+                savingProductDatatables: SavingProductDatatablesResolver
+              },
+              children: [
+                {
+                  path: '',
+                  component: ViewSavingProductComponent,
+                  children: [
+                    {
+                      path: '',
+                      redirectTo: 'general',
+                      pathMatch: 'full'
+                    },
+                    {
+                      path: 'general',
+                      data: { title: 'General', breadcrumb: 'General', routeParamBreadcrumb: false },
+                      component: SavingProductGeneralTabComponent,
+                      resolve: {
+                        savingProduct: SavingProductResolver
+                      }
+                    },
+                    {
+                      path: 'datatables',
+                      children: [
+                        {
+                          path: ':datatableName',
+                          component: SavingProductDatatableTabComponent,
+                          data: { title: 'Data Table View', routeParamBreadcrumb: 'datatableName' },
+                          resolve: {
+                            savingProductDatatable: SavingProductDatatableResolver
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  path: 'edit',
+                  component: EditSavingProductComponent,
+                  data: { title: 'Edit Saving Product', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                  resolve: {
+                    savingProductAndTemplate: SavingProductAndTemplateResolver
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'share-products',
+          data: { title: 'Share Products', breadcrumb: 'Share Products' },
+          children: [
+            {
+              path: '',
+              component: ShareProductsComponent,
+              resolve: {
+                shareProducts: ShareProductsResolver
+              }
+            },
+            {
+              path: 'create',
+              component: CreateShareProductComponent,
+              data: { title: 'Create Share Product', breadcrumb: 'Create' },
+              resolve: {
+                shareProductsTemplate: ShareProductsTemplateResolver
+              }
+            },
+            {
+              path: ':productId',
+              data: { title: 'View Share Product', breadcrumb: 'productId', routeParamBreadcrumb: 'productId' },
+              resolve: {
+                shareProductDatatables: ShareProductDatatablesResolver
+              },
+              children: [
+                {
+                  path: '',
+                  component: ViewShareProductComponent,
+                  children: [
+                    {
+                      path: '',
+                      redirectTo: 'general',
+                      pathMatch: 'full'
+                    },
+                    {
+                      path: 'general',
+                      data: { title: 'General', breadcrumb: 'General', routeParamBreadcrumb: false },
+                      component: ShareProductGeneralTabComponent,
+                      resolve: {
+                        shareProduct: ShareProductResolver
+                      }
+                    },
+                    {
+                      path: 'datatables',
+                      children: [
+                        {
+                          path: ':datatableName',
+                          component: ShareProductDatatableTabComponent,
+                          data: { title: 'Data Table View', routeParamBreadcrumb: 'datatableName' },
+                          resolve: {
+                            shareProductDatatable: ShareProductDatatableResolver
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  path: 'edit',
+                  component: EditShareProductComponent,
+                  data: { title: 'Edit Share Product', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                  resolve: {
+                    shareProductAndTemplate: ShareProductAndTemplateResolver
+                  }
+                },
+                {
+                  path: 'dividends',
+                  data: { title: 'Share Products Dividends', breadcrumb: 'Dividends', routeParamBreadcrumb: false },
+                  children: [
+                    {
+                      path: '',
+                      component: ShareProductsDividendsComponent,
+                      resolve: {
+                        dividends: DividendsResolver
+                      }
+                    },
+                    {
+                      path: 'create',
+                      component: CreateDividendComponent,
+                      data: { title: 'Create Dividend', breadcrumb: 'Create', routeParamBreadcrumb: false },
+                      resolve: {
+                        shareProduct: ShareProductResolver
+                      }
+                    },
+                    {
+                      path: ':dividendId',
+                      component: ViewDividendComponent,
+                      data: { title: 'View Dividend', routeParamBreadcrumb: 'dividendId' },
+                      resolve: {
+                        dividendData: ViewDividendDataResolver
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'transfer-fees',
+          data: { title: 'Transfer Fees', breadcrumb: 'Transfer Fees' },
+          children: [
+            {
+              path: '',
+              component: TransferFeesComponent,
+              resolve: {
+                transferFees: TransferFeesResolver
+              }
+            },
+            {
+              path: 'create',
+              component: CreateTransferFeeComponent,
+              data: { title: 'Create Transfer Fee', breadcrumb: 'Create' }
+            },
+            {
+              path: ':id',
+              data: { title: 'View Transfer Fee', routeParamBreadcrumb: 'id' },
+              children: [
+                {
+                  path: '',
+                  component: ViewTransferFeeComponent,
+                  resolve: {
+                    transferFee: TransferFeeResolver
+                  }
+                },
+                {
+                  path: 'edit',
+                  component: EditTransferFeeComponent,
+                  data: { title: 'Edit Transfer Fee', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                  resolve: {
+                    transferFee: TransferFeeResolver
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'tax-configurations',
+          data: { title: 'Manage Tax Configurations', breadcrumb: 'Manage Tax Configurations' },
+          children: [
+            {
+              path: '',
+              component: ManageTaxConfigurationsComponent
+            },
+            {
+              path: 'tax-components',
+              data: { title: 'Manage Tax Components', breadcrumb: 'Tax Components' },
+              children: [
+                {
+                  path: '',
+                  component: ManageTaxComponentsComponent,
+                  resolve: {
+                    taxComponents: ManageTaxComponentsResolver
+                  }
+                },
+                {
+                  path: 'create',
+                  component: CreateTaxComponentComponent,
+                  data: { title: 'Create Tax Component', breadcrumb: 'Create' },
+                  resolve: {
+                    taxComponentTemplate: TaxComponentTemplateResolver
+                  }
+                },
+                {
+                  path: ':id',
+                  data: { title: 'View Tax Component', routeParamBreadcrumb: 'id' },
+                  resolve: {
+                    taxComponent: TaxComponentResolver
+                  },
+                  children: [
+                    {
+                      path: '',
+                      component: ViewTaxComponentComponent,
+                      resolve: {
+                        taxComponent: TaxComponentResolver
+                      }
+                    },
+                    {
+                      path: 'edit',
+                      data: { title: 'Edit Tax Component', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                      component: EditTaxComponentComponent,
+                      resolve: {
+                        taxComponent: TaxComponentResolver
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              path: 'tax-groups',
+              data: { title: 'Manage Tax Groups', breadcrumb: 'Tax Groups' },
+              children: [
+                {
+                  path: '',
+                  component: ManageTaxGroupsComponent,
+                  resolve: {
+                    taxGroups: ManageTaxGroupsResolver
+                  }
+                },
+                {
+                  path: 'create',
+                  component: CreateTaxGroupComponent,
+                  data: { title: 'Create Tax Group', breadcrumb: 'Create' },
+                  resolve: {
+                    taxGroupTemplate: ManageTaxGroupTemplateResolver
+                  }
+                },
+                {
+                  path: ':id',
+                  data: { title: 'View Tax Group', routeParamBreadcrumb: 'id' },
+                  resolve: {
+                    taxGroup: TaxGroupResolver
+                  },
+                  children: [
+                    {
+                      path: '',
+                      component: ViewTaxGroupComponent,
+                      resolve: {
+                        taxGroup: TaxGroupResolver
+                      }
+                    },
+                    {
+                      path: 'edit',
+                      data: { title: 'Edit Tax Group', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                      component: EditTaxGroupComponent,
+                      resolve: {
+                        taxGroup: EditTaxGroupResolver
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'delinquency-bucket-configurations',
+          data: {
+            title: 'Manage Delinquency Bucket Configurations',
+            breadcrumb: 'Manage Delinquency Bucket Configurations'
+          },
+          children: [
+            {
+              path: '',
+              component: ManageDelinquencyBucketsComponent
+            },
+            {
+              path: 'ranges',
+              data: { title: 'Manage Delinquency Ranges', breadcrumb: 'Delinquency Ranges' },
+              children: [
+                {
+                  path: '',
+                  component: DelinquencyRangeComponent,
+                  resolve: {
+                    delinquencyRanges: DelinquencyRangeComponentsResolver
+                  }
+                },
+                {
+                  path: 'create',
+                  component: CreateRangeComponent,
+                  data: { title: 'Create Delinquency Range', breadcrumb: 'Create' }
+                },
+                {
+                  path: ':rangeId',
+                  data: { title: 'View Delinquency Range', routeParamBreadcrumb: 'id' },
+                  resolve: {
+                    delinquencyRange: DelinquencyRangeComponentsResolver
+                  },
+                  children: [
+                    {
+                      path: '',
+                      component: ViewRangeComponent,
+                      resolve: {
+                        delinquencyRange: DelinquencyRangeComponentsResolver
+                      }
+                    },
+                    {
+                      path: 'edit',
+                      data: { title: 'Edit Delinquency Range', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                      component: EditRangeComponent,
+                      resolve: {
+                        delinquencyRange: DelinquencyRangeComponentsResolver
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              path: 'buckets',
+              data: { title: 'Manage Delinquency Bucket', breadcrumb: 'Delinquency Buckets' },
+              children: [
+                {
+                  path: '',
+                  component: DelinquencyBucketComponent,
+                  resolve: {
+                    delinquencyBuckets: DelinquencyBucketComponentsResolver
+                  }
+                },
+                {
+                  path: 'create',
+                  component: CreateBucketComponent,
+                  data: { title: 'Create Delinquency Bucket', breadcrumb: 'Create' },
+                  resolve: {
+                    delinquencyBucketsTemplateData: DelinquencyRangeComponentsResolver
+                  }
+                },
+                {
+                  path: ':bucketId',
+                  data: { title: 'View Delinquency Bucket', routeParamBreadcrumb: 'id' },
+                  resolve: {
+                    delinquencyBucket: DelinquencyBucketComponentsResolver
+                  },
+                  children: [
+                    {
+                      path: '',
+                      component: ViewBucketComponent,
+                      resolve: {
+                        delinquencyBucket: DelinquencyBucketComponentsResolver
+                      }
+                    },
+                    {
+                      path: 'edit',
+                      data: { title: 'Edit Delinquency Bucket', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                      component: EditBucketComponent,
+                      resolve: {
+                        delinquencyBucket: DelinquencyBucketComponentsResolver,
+                        delinquencyBucketsTemplateData: DelinquencyRangeComponentsResolver
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'recurring-deposit-products',
+          data: { title: 'Recurring Deposit Products', breadcrumb: 'Recurring Deposit Products' },
+          children: [
+            {
+              path: 'create',
+              component: CreateRecurringDepositProductComponent,
+              data: { title: 'Create Recurring Deposit Product', breadcrumb: 'Create' },
+              resolve: {
+                recurringDepositProductsTemplate: RecurringDepositProductsTemplateResolver
+              }
+            },
+            {
+              path: '',
+              component: RecurringDepositProductsComponent,
+              resolve: {
+                recurringDepositProducts: RecurringDepositProductsResolver
+              }
+            },
+            {
+              path: ':productId',
+              data: {
+                title: 'View Recurring Deposit Product',
+                breadcrumb: 'productId',
+                routeParamBreadcrumb: 'productId'
+              },
+              component: ViewRecurringDepositProductComponent,
+              resolve: {
+                recurringDepositDatatables: SavingProductDatatablesResolver
+              },
+              children: [
+                {
+                  path: '',
+                  redirectTo: 'general',
+                  pathMatch: 'full'
+                },
+                {
+                  path: 'general',
+                  data: { title: 'General', breadcrumb: 'General', routeParamBreadcrumb: false },
+                  component: RecurringDepositGeneralTabComponent,
+                  resolve: {
+                    recurringDepositProduct: RecurringDepositProductResolver
+                  }
+                },
+                {
+                  path: 'datatables',
+                  children: [
+                    {
+                      path: ':datatableName',
+                      component: RecurringDepositDatatableTabComponent,
+                      resolve: {
+                        recurringDepositDatatable: SavingProductDatatableResolver
+                      }
+                    }
+                  ]
+                },
+                {
+                  path: 'edit',
+                  data: { title: 'Edit Recurring Deposit Product', breadcrumb: 'edit', routeParamBreadcrumb: false },
+                  component: EditRecurringDepositProductComponent,
+                  resolve: {
+                    recurringDepositProductAndTemplate: RecurringDepositProductAndTemplateResolver
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'fixed-deposit-products',
+          data: { title: 'Fixed Deposit Products', breadcrumb: 'Fixed Deposit Products' },
+          children: [
+            {
+              path: 'create',
+              component: CreateFixedDepositProductComponent,
+              data: { title: 'Create Fixed Deposit Product', breadcrumb: 'Create' },
+              resolve: {
+                fixedDepositProductsTemplate: FixedDepositProductsTemplateResolver
+              }
+            },
+            {
+              path: '',
+              component: FixedDepositProductsComponent,
+              resolve: {
+                fixedDepositProducts: FixedDepositProductsResolver
+              }
+            },
+            {
+              path: ':productId',
+              data: { title: 'View Fixed Deposit Product', breadcrumb: 'productId', routeParamBreadcrumb: 'productId' },
+              component: ViewFixedDepositProductComponent,
+              resolve: {
+                fixedDepositDatatables: SavingProductDatatablesResolver
+              },
+              children: [
+                {
+                  path: '',
+                  redirectTo: 'general',
+                  pathMatch: 'full'
+                },
+                {
+                  path: 'general',
+                  data: { title: 'General', breadcrumb: 'General', routeParamBreadcrumb: false },
+                  component: FixedDepositGeneralTabComponent,
+                  resolve: {
+                    fixedDepositProduct: FixedDepositProductResolver
+                  }
+                },
+                {
+                  path: 'datatables',
+                  children: [
+                    {
+                      path: ':datatableName',
+                      component: FixedDepositDatatableTabComponent,
+                      resolve: {
+                        fixedDepositDatatable: SavingProductDatatableResolver
+                      }
+                    }
+                  ]
+                },
+                {
+                  path: 'edit',
+                  data: { title: 'Edit Fixed Deposit Product', breadcrumb: 'edit', routeParamBreadcrumb: false },
+                  component: EditFixedDepositProductComponent,
+                  resolve: {
+                    fixedDepositProductAndTemplate: FixedDepositProductAndTemplateResolver
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'products-mix',
+          data: { title: 'Products Mix', breadcrumb: 'Products Mix' },
+          children: [
+            {
+              path: 'create',
+              component: CreateProductMixComponent,
+              data: { title: 'Create Product Mix', breadcrumb: 'Create' },
+              resolve: {
+                productsMixTemplate: ProductsMixTemplateResolver
+              }
+            },
+            {
+              path: '',
+              component: ProductsMixComponent,
+              resolve: {
+                products: ProductsMixResolver
+              }
+            },
+            {
+              path: ':id',
+              data: { title: 'View Product Mix', routeParamBreadcrumb: 'id' },
+              resolve: {
+                productMix: ViewProductMixResolver
+              },
+              children: [
+                {
+                  path: '',
+                  component: ViewProductMixComponent,
+                  resolve: {
+                    productMix: ViewProductMixResolver
+                  }
+                },
+                {
+                  path: 'edit',
+                  data: { title: 'Edit Product Mix', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                  component: EditProductMixComponent,
+                  resolve: {
+                    productMix: ViewProductMixResolver
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'floating-rates',
+          data: { title: 'Floating Rates', breadcrumb: 'Floating Rates' },
+          children: [
+            {
+              path: '',
+              component: FloatingRatesComponent,
+              resolve: {
+                floatingrates: FloatingRatesResolver
+              }
+            },
+            {
+              path: 'create',
+              component: CreateFloatingRateComponent,
+              data: { title: 'Create Floating Rate', breadcrumb: 'Create' }
+            },
+            {
+              path: ':id',
+              data: { title: 'View Floating Rate', routeParamBreadcrumb: 'id' },
+              resolve: {
+                floatingRate: FloatingRateResolver
+              },
+              children: [
+                {
+                  path: '',
+                  component: ViewFloatingRateComponent,
+                  resolve: {
+                    floatingRate: FloatingRateResolver
+                  }
+                },
+                {
+                  path: 'edit',
+                  component: EditFloatingRateComponent,
+                  data: { title: 'Edit Floating Rate', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                  resolve: {
+                    floatingRate: FloatingRateResolver
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'charges',
+          data: { title: 'Charges', breadcrumb: 'Charges' },
+          children: [
+            {
+              path: 'create',
+              component: CreateChargeComponent,
+              data: { title: 'Create Charge', breadcrumb: 'Create Charge' },
+              resolve: {
+                chargesTemplate: ChargesTemplateResolver
+              }
+            },
+            {
+              path: '',
+              component: ChargesComponent,
+              resolve: {
+                charges: ChargesResolver
+              }
+            },
+            {
+              path: ':id',
+              data: { title: 'View Charges', breadcrumb: 'id', routeParamBreadcrumb: 'id' },
+              resolve: {
+                charge: ChargeResolver
+              },
+              children: [
+                {
+                  path: '',
+                  component: ViewChargeComponent,
+                  resolve: {
+                    charge: ChargeResolver
+                  }
+                },
+                {
+                  path: 'edit',
+                  component: EditChargeComponent,
+                  data: { title: 'Edit Charge', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                  resolve: {
+                    chargesTemplate: ChargesTemplateAndResolver
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'collaterals',
+          data: { title: 'Collaterals', breadcrumb: 'Collaterals' },
+          children: [
+            {
+              path: 'create',
+              component: CreateCollateralComponent,
+              data: { title: 'Create Collateral', breadcrumb: 'Create Collateral' },
+              resolve: {
+                collateralTemplate: CollateralTemplateResolver
+              }
+            },
+            {
+              path: '',
+              component: CollateralsComponent,
+              resolve: {
+                collaterals: CollateralsResolver
+              }
+            },
+            {
+              path: ':id',
+              data: { title: 'View Collateral', routeParamBreadcrumb: 'id' },
+              resolve: {
+                collateral: CollateralResolver
+              },
+              children: [
+                {
+                  path: '',
+                  component: ViewCollateralComponent,
+                  resolve: {
+                    collateral: CollateralResolver
+                  }
+                },
+                {
+                  path: 'edit',
+                  component: EditCollateralComponent,
+                  data: { title: 'Edit Collateral', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                  resolve: {
+                    collateralTemplate: CollateralTemplateResolver,
+                    collateral: CollateralResolver
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'breach-configurations',
+          data: { title: 'Breach Configurations', breadcrumb: 'Breach Configurations' },
+          children: [
+            {
+              path: '',
+              component: BreachConfigurationComponent,
+              resolve: {
+                breaches: BreachesResolver
+              }
+            },
+            {
+              path: 'create',
+              component: CreateBreachConfigurationComponent,
+              data: { title: 'Create Breach', breadcrumb: 'Create' },
+              resolve: {
+                breachTemplate: BreachTemplateResolver
+              }
+            },
+            {
+              path: ':id',
+              data: { title: 'View Breach', routeParamBreadcrumb: 'id' },
+              children: [
+                {
+                  path: '',
+                  component: ViewBreachConfigurationComponent,
+                  resolve: {
+                    breachData: BreachResolver
+                  }
+                },
+                {
+                  path: 'edit',
+                  component: EditBreachConfigurationComponent,
+                  data: { title: 'Edit Breach', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                  resolve: {
+                    breachData: BreachResolver,
+                    breachTemplate: BreachTemplateResolver
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          path: 'near-breach-configurations',
+          data: { title: 'Near Breach Configurations', breadcrumb: 'Near Breach Configurations' },
+          children: [
+            {
+              path: '',
+              component: NearBreachConfigurationComponent,
+              resolve: {
+                nearBreaches: NearBreachesResolver
+              }
+            },
+            {
+              path: 'create',
+              component: CreateNearBreachConfigurationComponent,
+              data: { title: 'Create Near Breach', breadcrumb: 'Create' },
+              resolve: {
+                breachTemplate: BreachTemplateResolver
+              }
+            },
+            {
+              path: ':id',
+              data: { title: 'View Near Breach', routeParamBreadcrumb: 'id' },
+              children: [
+                {
+                  path: '',
+                  component: ViewNearBreachConfigurationComponent,
+                  resolve: {
+                    nearBreachData: NearBreachResolver
+                  }
+                },
+                {
+                  path: 'edit',
+                  component: EditNearBreachConfigurationComponent,
+                  data: { title: 'Edit Near Breach', breadcrumb: 'Edit', routeParamBreadcrumb: false },
+                  resolve: {
+                    nearBreachData: NearBreachResolver,
+                    breachTemplate: BreachTemplateResolver
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ])
+];
+
+/**
+ * Products Routing Module
+ *
+ * Configures the products routes.
+ */
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule],
+  providers: [
+    LoanProductsResolver,
+    LoanProductsTemplateResolver,
+    LoanProductResolver,
+    LoanProductAndTemplateResolver,
+    SavingProductsResolver,
+    SavingProductsTemplateResolver,
+    SavingProductResolver,
+    SavingProductAndTemplateResolver,
+    ShareProductsResolver,
+    ShareProductsTemplateResolver,
+    ShareProductResolver,
+    ShareProductAndTemplateResolver,
+    RecurringDepositProductsResolver,
+    RecurringDepositProductResolver,
+    ChargesResolver,
+    ChargeResolver,
+    ChargesTemplateAndResolver,
+    ChargesTemplateResolver,
+    TransferFeesResolver,
+    TransferFeeResolver,
+    FixedDepositProductsResolver,
+    FixedDepositProductsTemplateResolver,
+    ProductsMixResolver,
+    ViewProductMixResolver,
+    ManageTaxComponentsResolver,
+    ManageTaxGroupsResolver,
+    TaxComponentResolver,
+    FloatingRateResolver,
+    FloatingRatesResolver,
+    TaxComponentTemplateResolver,
+    EditTaxComponentComponent,
+    TaxGroupResolver,
+    DividendsResolver,
+    RecurringDepositProductsTemplateResolver,
+    RecurringDepositProductAndTemplateResolver,
+    ViewDividendDataResolver,
+    FixedDepositProductResolver,
+    ManageTaxGroupTemplateResolver,
+    EditTaxGroupResolver,
+    ProductsMixTemplateResolver,
+    FixedDepositProductAndTemplateResolver,
+    FloatingRatesResolver,
+    CollateralResolver,
+    CollateralsResolver,
+    CollateralTemplateResolver,
+    DelinquencyRangeComponentsResolver,
+    DelinquencyBucketComponentsResolver,
+    BreachTemplateResolver,
+    BreachesResolver,
+    BreachResolver,
+    NearBreachesResolver,
+    NearBreachResolver
+  ]
+})
+export class ProductsRoutingModule {}

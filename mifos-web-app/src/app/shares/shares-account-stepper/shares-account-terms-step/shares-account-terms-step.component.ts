@@ -1,0 +1,163 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnChanges, OnInit, Input, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { SettingsService } from 'app/settings/settings.service';
+import { Currency } from 'app/shared/models/general.model';
+import { CurrencyPipe } from '@angular/common';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MatStepperPrevious, MatStepperNext } from '@angular/material/stepper';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Shares Account Terms Step
+ */
+@Component({
+  selector: 'mifosx-shares-account-terms-step',
+  templateUrl: './shares-account-terms-step.component.html',
+  styleUrls: ['./shares-account-terms-step.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatCheckbox,
+    MatStepperPrevious,
+    FaIconComponent,
+    MatStepperNext,
+    CurrencyPipe
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class SharesAccountTermsStepComponent implements OnChanges, OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private settingsService = inject(SettingsService);
+
+  /** Shares Account and Product Template */
+  @Input() sharesAccountProductTemplate: any;
+  /** [Optional] Shares Account Template */
+  @Input() sharesAccountTemplate: any;
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum date allowed. */
+  maxDate = new Date();
+  /** Shares Account Terms Form */
+  sharesAccountTermsForm: UntypedFormGroup;
+  /** Minimum Active Period Frequency Type Data */
+  minimumActivePeriodFrequencyTypeData: any;
+  /** Lockin Period Frequency Type Data */
+  lockinPeriodFrequencyTypeData: any;
+  /** Savings Accounts Data */
+  savingsAccountsData: any;
+  /** For Edit Shares Account Form */
+  isSavingsPatched = false;
+
+  currency: Currency | null = null;
+
+  /**
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {SettingsService} settingsService Settings Service
+   */
+  constructor() {
+    this.createSharesAccountTermsForm();
+  }
+
+  ngOnChanges() {
+    if (this.sharesAccountProductTemplate) {
+      this.currency = this.sharesAccountProductTemplate.currency;
+      this.sharesAccountTermsForm.patchValue({
+        currencyCode: this.sharesAccountProductTemplate.currency.code,
+        decimal: this.sharesAccountProductTemplate.currency.decimalPlaces,
+        currencyMultiple: this.sharesAccountProductTemplate.currency.inMultiplesOf,
+        unitPrice: this.sharesAccountProductTemplate.currentMarketPrice,
+        savingsAccountId: ''
+      });
+      this.setOptions();
+      if (this.sharesAccountTemplate) {
+        if (!this.isSavingsPatched && this.sharesAccountTemplate.savingsAccountId) {
+          this.sharesAccountTermsForm.get('savingsAccountId').patchValue(this.sharesAccountTemplate.savingsAccountId);
+          this.isSavingsPatched = true;
+        }
+      }
+    }
+  }
+
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    if (this.sharesAccountTemplate) {
+      this.sharesAccountTermsForm.patchValue({
+        requestedShares: this.sharesAccountTemplate.summary.totalPendingForApprovalShares,
+        minimumActivePeriod: this.sharesAccountTemplate.minimumActivePeriod,
+        minimumActivePeriodFrequencyType:
+          this.sharesAccountTemplate.minimumActivePeriod && this.sharesAccountTemplate.minimumActivePeriodTypeEnum.id,
+        lockinPeriodFrequency: this.sharesAccountTemplate.lockinPeriod,
+        lockinPeriodFrequencyType:
+          this.sharesAccountTemplate.lockinPeriod && this.sharesAccountTemplate.lockPeriodTypeEnum.id,
+        applicationDate:
+          this.sharesAccountTemplate.purchasedShares[0].purchasedDate &&
+          new Date(this.sharesAccountTemplate.purchasedShares[0].purchasedDate),
+        allowDividendCalculationForInactiveClients:
+          this.sharesAccountTemplate.allowDividendCalculationForInactiveClients
+      });
+    }
+  }
+
+  /**
+   * Creates shares account terms form.
+   */
+  createSharesAccountTermsForm() {
+    this.sharesAccountTermsForm = this.formBuilder.group({
+      currencyCode: [{ value: '', disabled: true }],
+      decimal: [{ value: '', disabled: true }],
+      requestedShares: [
+        '',
+        Validators.required
+      ],
+      unitPrice: [{ value: '', disabled: true }],
+      currencyMultiple: [{ value: '', disabled: true }],
+      savingsAccountId: [
+        '',
+        Validators.required
+      ],
+      minimumActivePeriod: [''],
+      minimumActivePeriodFrequencyType: [''],
+      lockinPeriodFrequency: [''],
+      lockinPeriodFrequencyType: [''],
+      applicationDate: [
+        '',
+        Validators.required
+      ],
+      allowDividendCalculationForInactiveClients: [false]
+    });
+  }
+
+  /**
+   * Sets all select dropdown options.
+   */
+  setOptions() {
+    this.minimumActivePeriodFrequencyTypeData =
+      this.sharesAccountProductTemplate.minimumActivePeriodFrequencyTypeOptions;
+    this.lockinPeriodFrequencyTypeData = this.sharesAccountProductTemplate.lockinPeriodFrequencyTypeOptions;
+    this.savingsAccountsData = this.sharesAccountProductTemplate.clientSavingsAccounts;
+  }
+
+  /**
+   * Returns shares account terms form value.
+   */
+  get sharesAccountTerms() {
+    return this.sharesAccountTermsForm.value;
+  }
+
+  calculateCurrenValue(): number {
+    if (this.sharesAccountTermsForm.value.requestedShares && this.sharesAccountProductTemplate.currentMarketPrice) {
+      return this.sharesAccountProductTemplate.currentMarketPrice * this.sharesAccountTermsForm.value.requestedShares;
+    }
+    return 0;
+  }
+}

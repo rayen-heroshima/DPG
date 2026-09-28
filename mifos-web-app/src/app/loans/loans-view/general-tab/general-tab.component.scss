@@ -1,0 +1,76 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+@use '../loan-tab-shared' as shared;
+
+@include shared.fact-sheet;
+
+// Charged-off pill, identical to the one in the account header.
+@include shared.account-flag-badges;
+
+.tab-container {
+  padding: 4px 0 20px;
+}
+
+/* ── Card shell (shared card-container, without side margins) ── */
+.general-card {
+  @include shared.card-container;
+
+  margin: 12px 4px;
+}
+
+/* ── Status chip (badge system from charges/transactions) ──── */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+
+  .st {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentcolor;
+    flex-shrink: 0;
+  }
+}
+
+.st-active {
+  background: var(--ch-paid-bg);
+  color: var(--ch-paid);
+  border-color: var(--ch-paid);
+}
+
+.st-pending {
+  background: var(--ch-partial-bg);
+  color: var(--ch-partial);
+  border-color: var(--ch-partial);
+}
+
+.st-approved {
+  background: var(--ch-blue-50);
+  color: var(--ch-blue-700);
+  border-color: var(--ch-blue-100);
+}
+
+.st-overpaid {
+  background: var(--ch-blue-20);
+  color: var(--ch-blue-600);
+  border-color: var(--ch-blue-100);
+}
+
+.st-closed {
+  background: var(--ch-surface-h);
+  color: var(--ch-text-2);
+  border-color: var(--ch-border);
+}

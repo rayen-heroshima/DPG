@@ -1,0 +1,676 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { Injectable, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpClient, HttpParams, HttpHeaders } from '@angular/common/http';
+import { Router } from '@angular/router';
+/** rxjs Imports */
+import { BehaviorSubject, Observable, of, from } from 'rxjs';
+import { map, switchMap } from 'rxjs/operators';
+
+/** 3rd party Imports */
+import { OAuthService } from 'angular-oauth2-oidc';
+/** Custom Services */
+import { AlertService } from '../alert/alert.service';
+import { TranslateService } from '@ngx-translate/core';
+
+/** Custom Interceptors */
+import { AuthenticationInterceptor } from './authentication.interceptor';
+import { SessionSyncService } from './session-sync.service';
+
+/** Environment Configuration */
+import { environment } from '../../../environments/environment';
+
+/** Custom Models */
+import { LoginContext } from './login-context.model';
+import { Credentials } from './credentials.model';
+import { getOAuthConfig, getActiveAuthMode, AuthMode } from './oauth.config';
+import {
+  TENANT_MASTER_CREDENTIALS_KEY,
+  TENANT_MASTER_USERNAME_KEY
+} from 'app/system/tenant-management/models/tenant.model';
+
+/** Custom Utilities */
+import { sanitizeReturnUrl } from '../utils/return-url.utils';
+
+/**
+ * Authentication workflow.
+ */
+@Injectable()
+export class AuthenticationService {
+  private http = inject(HttpClient);
+  private alertService = inject(AlertService);
+  private authenticationInterceptor = inject(AuthenticationInterceptor);
+  private oauthService = inject(OAuthService);
+  private translateService = inject(TranslateService);
+  private sessionSyncService = inject(SessionSyncService);
+  private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
+
+  /**
+   * Updates the password for the specified user.
+   * @param {string} userId Target user identifier.
+   * @param {*} passwordObj Payload containing the new password fields.
+   * @returns Updated user response observable.
+   */
+  changePassword(userId: string, passwordObj: any) {
+    return this.http.put(`/users/${userId}`, passwordObj);
+  }
+
+  private userLoggedIn$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  /** Observable that emits authentication state changes. */
+  public readonly isAuthenticated$ = this.userLoggedIn$.asObservable();
+
+  /** Denotes whether the user credentials should persist through sessions. */
+  private rememberMe = false;
+  /**
+   * Denotes the type of storage:
+   *
+   * Session Storage: User credentials should not persist through sessions.
+   *
+   * Local Storage: User credentials should persist through sessions.
+   */
+  private storage: Storage = localStorage;
+  private credentials: Credentials;
+  private dialogShown = false;
+  private authMode: AuthMode = AuthMode.Basic;
+
+  /** Promise that resolves once the OIDC discovery document has been loaded. */
+  private discoveryDocumentLoaded: Promise<boolean> = Promise.resolve(false);
+
+  /** Key to store credentials in storage. */
+  private readonly credentialsStorageKey = 'mifosXCredentials';
+  /** Key to store two factor authentication token in storage. */
+  private readonly twoFactorAuthenticationTokenStorageKey = 'mifosXTwoFactorAuthenticationToken';
+
+  /**
+   * Initializes the type of storage and authorization headers depending on whether
+   * credentials are presently in storage or not.
+   * @param {HttpClient} http Http Client to send requests.
+   * @param {AlertService} alertService Alert Service.
+   * @param {AuthenticationInterceptor} authenticationInterceptor Authentication Interceptor.
+   * @param {OAuthService} oauthService OAuth Service.
+   */
+  constructor() {
+    this.authMode = getActiveAuthMode();
+
+    if (this.authMode !== AuthMode.Basic) {
+      this.initializeOAuthService();
+    }
+
+    this.restoreSession();
+    this.subscribeToCrossTabEvents();
+  }
+
+  /**
+   * Configures the OAuth service with runtime settings and hooks up token listeners.
+   */
+  private initializeOAuthService(): void {
+    const sessionKeys = [
+      'nonce',
+      'PKCE_verifier',
+      'state'
+    ];
+    this.oauthService.configure(getOAuthConfig());
+    this.oauthService.setStorage({
+      getItem: (key: string) =>
+        sessionKeys.some((k) => key.includes(k)) ? sessionStorage.getItem(key) : localStorage.getItem(key),
+      setItem: (key: string, value: string) => {
+        if (sessionKeys.some((k) => key.includes(k))) {
+          sessionStorage.setItem(key, value);
+        } else {
+          localStorage.setItem(key, value);
+        }
+      },
+      removeItem: (key: string) => {
+        if (sessionKeys.some((k) => key.includes(k))) {
+          sessionStorage.removeItem(key);
+        } else {
+          localStorage.removeItem(key);
+        }
+      }
+    });
+
+    // Load the OIDC discovery document so the library knows the authorization/token endpoints.
+    // This must complete before initCodeFlow() or tryLoginCodeFlow() can work.
+    this.discoveryDocumentLoaded = this.oauthService
+      .loadDiscoveryDocumentAndTryLogin()
+      .then(() => {
+        this.oauthService.setupAutomaticSilentRefresh();
+        return true;
+      })
+      .catch((err) => {
+        console.error('Failed to load OIDC discovery document:', err);
+        return false;
+      });
+
+    this.oauthService.events.subscribe((event) => {
+      if (event.type === 'token_received' || event.type === 'token_refreshed') {
+        this.updateCredentialsToken();
+      }
+    });
+
+    this.cleanupLegacyStorage();
+  }
+
+  /**
+   * Restores persisted credentials/tokens from storage and rehydrates the session state.
+   */
+  private restoreSession(sourceStorage?: Storage): void {
+    const savedCredentials = this.getSavedCredentials(sourceStorage);
+    if (!savedCredentials) return;
+
+    this.rememberMe = !!savedCredentials.rememberMe;
+    this.storage = this.authMode !== AuthMode.Basic || this.rememberMe ? localStorage : sessionStorage;
+
+    if (this.authMode !== AuthMode.Basic) {
+      // OAuth2/OIDC: Wait for discovery document before attempting token refresh
+      this.discoveryDocumentLoaded.then((loaded) => {
+        if (!loaded) return;
+        if (this.oauthService.hasValidAccessToken()) {
+          this.authenticationInterceptor.setAuthorizationToken(this.oauthService.getAccessToken());
+          this.oauthService.setupAutomaticSilentRefresh();
+          this.userLoggedIn$.next(true);
+        } else if (this.oauthService.getRefreshToken()) {
+          this.oauthService
+            .refreshToken()
+            .then(() => this.userLoggedIn$.next(true))
+            .catch(() => this.logout().subscribe());
+        }
+      });
+    } else {
+      // Basic Auth
+      this.authenticationInterceptor.setAuthorizationToken(savedCredentials.base64EncodedAuthenticationKey);
+
+      const twoFactorToken = JSON.parse(this.storage.getItem(this.twoFactorAuthenticationTokenStorageKey));
+      if (twoFactorToken) {
+        this.authenticationInterceptor.setTwoFactorAccessToken(twoFactorToken.token);
+      }
+
+      this.userLoggedIn$.next(true);
+    }
+  }
+
+  /** Reacts to login/logout/token-refresh events from other tabs. */
+  private subscribeToCrossTabEvents(): void {
+    this.sessionSyncService.onCrossTabLogin$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((sourceStorage) => {
+      this.restoreSession(sourceStorage);
+      if (this.router.url.startsWith('/login')) {
+        const returnUrl = sanitizeReturnUrl(this.router.parseUrl(this.router.url).queryParams['returnUrl']);
+        this.router.navigateByUrl(returnUrl, { replaceUrl: true });
+      }
+    });
+
+    this.sessionSyncService.onCrossTabLogout$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.authenticationInterceptor.removeAuthorization();
+      this.authenticationInterceptor.removeTwoFactorAuthorization();
+      this.setCredentials(undefined, false);
+      if (this.authMode !== AuthMode.Basic) {
+        this.oauthService.logOut(true);
+      }
+      this.userLoggedIn$.next(false);
+      this.router.navigate(['/login'], { replaceUrl: true, queryParams: { returnUrl: this.router.url } });
+    });
+
+    this.sessionSyncService.onCrossTabTokenRefresh$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((sourceStorage) => {
+        this.restoreSession(sourceStorage);
+      });
+  }
+
+  /**
+   * Persists the latest OAuth access token in both the interceptor and stored credentials.
+   */
+  private updateCredentialsToken(): void {
+    const accessToken = this.oauthService.getAccessToken();
+    if (!accessToken) return;
+
+    this.authenticationInterceptor.setAuthorizationToken(accessToken);
+
+    const credentials = this.getCredentials();
+    if (credentials) {
+      credentials.accessToken = accessToken;
+      const payload = JSON.stringify(credentials);
+      this.storage.setItem(this.credentialsStorageKey, payload);
+
+      if (this.storage === sessionStorage) {
+        this.sessionSyncService.broadcastSessionStorageChange('REFRESH', {
+          creds: payload,
+          twoFactor: this.storage.getItem(this.twoFactorAuthenticationTokenStorageKey)
+        });
+      }
+    }
+  }
+
+  /**
+   * Reads the cached credentials from session or local storage, if present.
+   * @returns {Credentials | null} Stored credentials or null when absent.
+   */
+  private getSavedCredentials(sourceStorage?: Storage): Credentials | null {
+    if (sourceStorage) {
+      const stored = sourceStorage.getItem(this.credentialsStorageKey);
+      return stored ? JSON.parse(stored) : null;
+    }
+    const stored =
+      sessionStorage.getItem(this.credentialsStorageKey) || localStorage.getItem(this.credentialsStorageKey);
+    return stored ? JSON.parse(stored) : null;
+  }
+
+  /**
+   * Authenticates the user.
+   * @param {LoginContext} loginContext Login parameters.
+   * @returns {Observable<boolean>} True if authentication is successful.
+   */
+  login(loginContext?: LoginContext): Observable<boolean> {
+    this.alertService.alert({
+      type: this.translateService.instant('errors.auth.startType'),
+      message: this.translateService.instant('errors.auth.pleaseWait')
+    });
+
+    if (this.authMode !== AuthMode.Basic) {
+      // OAuth2/OIDC: Wait for the discovery document, then redirect to authorization server with PKCE
+      return from(
+        this.discoveryDocumentLoaded.then((loaded) => {
+          if (!loaded) {
+            throw new Error('OIDC discovery document failed to load. Cannot redirect to login.');
+          }
+          this.oauthService.initCodeFlow();
+          return true;
+        })
+      );
+    }
+
+    if (!loginContext) {
+      throw new Error('loginContext is required when using Basic authentication');
+    }
+
+    this.rememberMe = environment.enableRememberMe ? (loginContext?.remember ?? false) : false;
+    this.storage = this.rememberMe ? localStorage : sessionStorage;
+
+    // Basic Auth: Direct authentication with Fineract
+    return this.http
+      .post('/authentication', {
+        username: loginContext.username,
+        password: loginContext.password,
+        remember: this.rememberMe
+      })
+      .pipe(
+        map((credentials: Credentials) => {
+          this.onLoginSuccess(credentials);
+          return true;
+        })
+      );
+  }
+
+  /**
+   * Fetches user details from the server.
+   * @returns {Promise<void>} Promise that resolves when user details are fetched.
+   */
+  private async getUserDetails(): Promise<void> {
+    const accessToken = this.oauthService.getAccessToken();
+
+    return new Promise((resolve, reject) => {
+      if (this.authMode === AuthMode.OIDC) {
+        const url = `${environment.OIDC.oidcApiUrl}authentication/userdetails`;
+        this.http.post<{ object: Credentials }>(url, { token: accessToken }).subscribe({
+          next: (response) => {
+            const credentials = response.object;
+            credentials.accessToken = accessToken;
+            this.onLoginSuccess(credentials);
+            resolve();
+          },
+          error: (error) => {
+            console.error('Failed to fetch user details:', error);
+            reject(error);
+          }
+        });
+      } else if (this.authMode === AuthMode.OAuth2) {
+        const headers = new HttpHeaders().set('Authorization', `Bearer ${accessToken}`);
+        const url = `${environment.oauth.serverUrl}/userdetails`;
+        this.http.get<Credentials>(url, { headers }).subscribe({
+          next: (credentials) => {
+            credentials.accessToken = accessToken;
+            this.onLoginSuccess(credentials);
+            resolve();
+          },
+          error: (error) => {
+            console.error('Failed to fetch user details:', error);
+            reject(error);
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * Sets the authorization token followed by one of the following:
+   *
+   * Sends an alert if two factor authentication is required.
+   *
+   * Sends an alert if password has expired and requires a reset.
+   *
+   * Sends an alert on successful login.
+   * @param {Credentials} credentials Authenticated user credentials.
+   */
+  private onLoginSuccess(credentials: Credentials): void {
+    this.userLoggedIn$.next(true); // ✅ notify observers
+    // Ensure the rememberMe value is preserved in credentials
+    credentials.rememberMe = this.rememberMe;
+
+    if (this.authMode !== AuthMode.Basic) {
+      this.authenticationInterceptor.setAuthorizationToken(credentials.accessToken);
+    } else {
+      this.authenticationInterceptor.setAuthorizationToken(credentials.base64EncodedAuthenticationKey);
+    }
+    if (credentials.isTwoFactorAuthenticationRequired) {
+      this.credentials = credentials;
+      this.alertService.alert({
+        type: this.translateService.instant('errors.auth.twoFactor.type'),
+        message: this.translateService.instant('errors.auth.twoFactor.message')
+      });
+    } else {
+      if (credentials.shouldRenewPassword) {
+        this.credentials = credentials;
+        this.alertService.alert({
+          type: this.translateService.instant('errors.auth.passwordExpired.type'),
+          message: this.translateService.instant('errors.auth.passwordExpired.message')
+        });
+      } else {
+        this.setCredentials(credentials);
+        this.alertService.alert({
+          type: this.translateService.instant('errors.auth.success.type'),
+          message: this.translateService.instant('errors.auth.success.message', { username: credentials.username })
+        });
+        delete this.credentials;
+      }
+    }
+  }
+
+  /**
+   * Handles the OAuth callback.
+   * @returns {Promise<boolean>} True if the OAuth callback was successful.
+   */
+  async handleOAuthCallback(): Promise<boolean> {
+    try {
+      // Ensure the discovery document is loaded so the library knows the token endpoint
+      const discoveryLoaded = await this.discoveryDocumentLoaded;
+      if (!discoveryLoaded) {
+        console.error('OIDC discovery document not loaded. Cannot process OAuth callback.');
+        return false;
+      }
+
+      // index.html preserves the OAuth callback query string in sessionStorage before redirecting to /#/callback, since Angular routing consumes query params before the OAuth library can process them.
+      let queryString = sessionStorage.getItem('oauth_callback_query');
+
+      if (queryString) {
+        sessionStorage.removeItem('oauth_callback_query');
+        await this.oauthService.tryLoginCodeFlow({ customHashFragment: queryString });
+      } else {
+        await this.oauthService.tryLoginCodeFlow();
+      }
+
+      if (this.oauthService.hasValidAccessToken()) {
+        await this.getUserDetails();
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('OAuth callback failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Logs out the authenticated user and clears the credentials from storage.
+   * @param {string} returnUrl Optional deep link to preserve after login.
+   * @returns {Observable<boolean>} True if the user was logged out successfully.
+   */
+  logout(returnUrl?: string): Observable<boolean> {
+    const twoFactorToken = JSON.parse(this.storage.getItem(this.twoFactorAuthenticationTokenStorageKey));
+    if (twoFactorToken) {
+      this.http.post('/twofactor/invalidate', { token: twoFactorToken.token }).subscribe();
+      this.authenticationInterceptor.removeTwoFactorAuthorization();
+    }
+
+    // Clear any pending OAuth callback data
+    sessionStorage.removeItem('oauth_callback_query');
+
+    this.authenticationInterceptor.removeAuthorization();
+    this.setCredentials();
+    this.resetDialog();
+    this.userLoggedIn$.next(false);
+
+    if (this.authMode === AuthMode.OIDC) {
+      // OIDC: Use library to handle logout (redirects to OIDC provider)
+      const baseRedirectUrl = `${window.location.origin}/#/login`;
+      this.oauthService.postLogoutRedirectUri = returnUrl
+        ? `${baseRedirectUrl}?returnUrl=${encodeURIComponent(returnUrl)}`
+        : baseRedirectUrl;
+      this.oauthService.logOut();
+    } else if (this.authMode === AuthMode.OAuth2) {
+      // OAuth2 (Fineract): Clear library tokens and server session
+      this.oauthService.logOut(true); // true = don't redirect
+      // Call Fineract logout endpoint in a popup to clear server session (includes JSESSIONID cookie)
+      // Then close the popup and navigate to login page
+      const logoutWindow = window.open(environment.oauth.logoutUrl, '_blank', 'width=100,height=100');
+      setTimeout(() => {
+        if (logoutWindow) {
+          logoutWindow.close();
+        }
+        let targetUrl = `${window.location.origin}/#/login`;
+        if (returnUrl) {
+          targetUrl += `?returnUrl=${encodeURIComponent(returnUrl)}`;
+        }
+        window.location.href = targetUrl;
+      }, 500);
+    }
+    return of(true);
+  }
+
+  /**
+   * Checks if the two factor access token for authenticated user is valid.
+   * @returns {boolean} True if the two factor access token is valid or two factor authentication is not required.
+   */
+  twoFactorAccessTokenIsValid(): boolean {
+    const twoFactorAccessToken = JSON.parse(this.storage.getItem(this.twoFactorAuthenticationTokenStorageKey));
+    if (twoFactorAccessToken) {
+      return new Date().getTime() < twoFactorAccessToken.validTo;
+    }
+    return true;
+  }
+
+  /**
+   * Checks if the user is authenticated.
+   * @returns {boolean} True if the user is authenticated.
+   */
+  isAuthenticated(): boolean {
+    if (this.authMode !== AuthMode.Basic) {
+      return this.oauthService.hasValidAccessToken();
+    }
+    return !!(this.getSavedCredentials() && this.twoFactorAccessTokenIsValid());
+  }
+
+  /**
+   * Gets the user credentials.
+   * @returns {Credentials} The user credentials if the user is authenticated otherwise null.
+   */
+  getCredentials(): Credentials | null {
+    return JSON.parse(this.storage.getItem(this.credentialsStorageKey));
+  }
+
+  /**
+   * Sets the user credentials.
+   *
+   * The credentials may be persisted across sessions by setting the `rememberMe` parameter to true.
+   * Otherwise, the credentials are only persisted for the current session.
+   *
+   * @param {Credentials} credentials Authenticated user credentials.
+   * @param {boolean} broadcast Whether to broadcast storage changes to other tabs.
+   */
+  private setCredentials(credentials?: Credentials, broadcast = true): void {
+    if (credentials) {
+      credentials.rememberMe = this.rememberMe;
+      if (this.authMode !== AuthMode.Basic) {
+        this.storage = localStorage;
+      } else {
+        this.storage = this.rememberMe ? localStorage : sessionStorage;
+      }
+      const payload = JSON.stringify(credentials);
+      this.storage.setItem(this.credentialsStorageKey, payload);
+
+      if (broadcast && this.storage === sessionStorage) {
+        this.sessionSyncService.broadcastSessionStorageChange('LOGIN', {
+          creds: payload,
+          twoFactor: this.storage.getItem(this.twoFactorAuthenticationTokenStorageKey)
+        });
+      }
+    } else {
+      // Clear credentials from both storage types to ensure complete logout
+      [
+        localStorage,
+        sessionStorage
+      ].forEach((store) => {
+        store.removeItem(this.credentialsStorageKey);
+        store.removeItem(this.twoFactorAuthenticationTokenStorageKey);
+        // The tenant management master credential is a separate, higher-privilege session held in
+        // this tab. Leaving it behind would let whoever logs in next administer every tenant.
+        store.removeItem(TENANT_MASTER_CREDENTIALS_KEY);
+        store.removeItem(TENANT_MASTER_USERNAME_KEY);
+      });
+      this.cleanupLegacyStorage();
+
+      if (broadcast && this.storage === sessionStorage) {
+        this.sessionSyncService.broadcastSessionStorageChange('LOGOUT');
+      }
+    }
+  }
+
+  private cleanupLegacyStorage(): void {
+    const legacyKeys = [
+      'mifosXZitadelTokenDetails',
+      'mifosXOAuthTokenDetails',
+      'token_start_time',
+      'refresh_expires_in',
+      'mifosXZitadel',
+      'auth_code'
+      // Note: Do NOT remove 'PKCE_verifier' here - it's needed by angular-oauth2-oidc for the callback
+    ];
+    legacyKeys.forEach((key) => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
+  }
+
+  /**
+   * Following functions are for two factor authentication and require
+   * first level authorization headers to be setup for the requests.
+   */
+
+  /**
+   * Gets the two factor authentication delivery methods available for the user.
+   */
+  getDeliveryMethods() {
+    return this.http.get('/twofactor');
+  }
+
+  showDialog() {
+    this.dialogShown = true;
+  }
+
+  resetDialog() {
+    this.dialogShown = false;
+  }
+
+  hasDialogBeenShown() {
+    return this.dialogShown;
+  }
+
+  /**
+   * Requests OTP to be sent via the given delivery method.
+   * @param {any} deliveryMethod Delivery method for the OTP.
+   */
+  requestOTP(deliveryMethod: any) {
+    let httpParams = new HttpParams();
+    httpParams = httpParams.set('deliveryMethod', deliveryMethod.name);
+    httpParams = httpParams.set('extendedToken', this.rememberMe.toString());
+    return this.http.post(`/twofactor`, {}, { params: httpParams });
+  }
+
+  /**
+   * Validates the OTP and authenticates the user on success.
+   * @param {string} otp
+   */
+  validateOTP(otp: string) {
+    const httpParams = new HttpParams().set('token', otp);
+    return this.http.post(`/twofactor/validate`, {}, { params: httpParams }).pipe(
+      map((response) => {
+        this.onOTPValidateSuccess(response);
+      })
+    );
+  }
+
+  /**
+   * Sets the two factor authorization token followed by one of the following:
+   *
+   * Sends an alert if password has expired and requires a reset.
+   *
+   * Sends an alert on successful login.
+   * @param {any} response Two factor authentication token details.
+   */
+  private onOTPValidateSuccess(response: any): void {
+    this.authenticationInterceptor.setTwoFactorAccessToken(response.token);
+    if (this.credentials.shouldRenewPassword) {
+      this.alertService.alert({
+        type: this.translateService.instant('errors.auth.passwordExpired.type'),
+        message: this.translateService.instant('errors.auth.passwordExpired.message')
+      });
+    } else {
+      this.storage.setItem(this.twoFactorAuthenticationTokenStorageKey, JSON.stringify(response));
+      this.setCredentials(this.credentials);
+      this.alertService.alert({
+        type: this.translateService.instant('errors.auth.success.type'),
+        message: this.translateService.instant('errors.auth.success.message', { username: this.credentials.username })
+      });
+      delete this.credentials;
+    }
+  }
+
+  /**
+   * Resets the user's password and authenticates the user.
+   * @param {any} passwordDetails New password.
+   */
+  resetPassword(passwordDetails: any) {
+    return this.http.put(`/users/${this.credentials.userId}`, passwordDetails).pipe(
+      map(() => {
+        this.alertService.alert({
+          type: this.translateService.instant('errors.auth.passwordReset.type'),
+          message: this.translateService.instant('errors.auth.passwordReset.message')
+        });
+        this.authenticationInterceptor.removeAuthorization();
+        this.authenticationInterceptor.removeTwoFactorAuthorization();
+        const loginContext: LoginContext = {
+          username: this.credentials.username,
+          password: passwordDetails.password,
+          remember: this.rememberMe
+        };
+        this.login(loginContext).subscribe();
+      })
+    );
+  }
+
+  /*
+   * Get user logged in
+   */
+  getUserLoggedIn(): boolean {
+    return this.userLoggedIn$.value;
+  }
+}

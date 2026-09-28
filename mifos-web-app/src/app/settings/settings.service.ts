@@ -1,0 +1,335 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { Injectable, inject, signal } from '@angular/core';
+import { AlertService } from 'app/core/alert/alert.service';
+import { Dates } from 'app/core/utils/dates';
+
+/** Environment Imports */
+import { environment } from '../../environments/environment';
+
+/**
+ * Settings Service
+ */
+@Injectable({
+  providedIn: 'root'
+})
+export class SettingsService {
+  private alertService = inject(AlertService);
+  private dateUtils = inject(Dates);
+
+  public static businessDateFormat = 'yyyy-MM-dd';
+  public static businessDateConfigName = 'enable-business-date';
+  public static businessDateType = 'BUSINESS_DATE';
+  public static cobDateType = 'COB_DATE';
+  minAllowedDate = new Date(1950, 0, 1);
+  maxAllowedDate = new Date(2100, 0, 1);
+
+  /** Reactive backing for the business date so signal consumers recompute when it changes. */
+  private readonly businessDateValue = signal<string | null>(localStorage.getItem('mifosXServerDate'));
+
+  /**
+   * Sets date format setting throughout the app.
+   * @param {string} dateFormat Date Format
+   */
+  setDateFormat(dateFormat: string) {
+    localStorage.setItem('mifosXDateFormat', JSON.stringify(dateFormat));
+  }
+
+  setDatetimeFormat(datetimeFormat: string) {
+    localStorage.setItem('mifosXDatetimeFormat', JSON.stringify(datetimeFormat));
+  }
+
+  /**
+   * Sets language setting throughout the app.
+   * @param {any} language Language.
+   */
+  setLanguage(language: { name: string; code: string }) {
+    localStorage.setItem('mifosXLanguage', JSON.stringify(language));
+  }
+
+  /**
+   * Sets decimals to Display throughout the app.
+   * @param {string} decimals.
+   */
+  setDecimalToDisplay(decimals: string) {
+    localStorage.setItem('mifosXDecimalsToDisplay', decimals);
+  }
+
+  setDefaultLanguage() {
+    const defaultLanguage = environment.defaultLanguage ? environment.defaultLanguage : 'en-US';
+    this.setLanguage({
+      name: defaultLanguage,
+      code: defaultLanguage.substring(0, 2)
+    });
+  }
+
+  /**
+   * Sets server URL setting throughout the app.
+   * @param {string} url URL
+   */
+  setServer(url: string) {
+    localStorage.setItem('mifosXServerURL', url);
+  }
+
+  /**
+   * Sets server URL setting throughout the app.
+   * @param {string[]} list List of default servers
+   */
+  setServers(list: string[]) {
+    localStorage.setItem('mifosXServers', JSON.stringify(list));
+  }
+
+  /**
+   * Sets Tenant Identifiers list setting throughout the app.
+   * @param {string[]} list List of default tenants
+   */
+  setTenantIdentifiers(list: string[]) {
+    localStorage.setItem('mifosXTenantIdentifiers', JSON.stringify(list));
+  }
+
+  /**
+   * Records the tenant identifiers read from the tenant management API.
+   *
+   * Kept apart from the configured list because that one is re-seeded from the environment on every
+   * bootstrap and on every visit to the login page, which would erase anything written into it.
+   * @param {string[]} list Tenant identifiers this installation actually has
+   */
+  setDiscoveredTenantIdentifiers(list: string[]) {
+    localStorage.setItem('mifosXDiscoveredTenantIdentifiers', JSON.stringify(list));
+  }
+
+  /**
+   * Sets Tenant Identifier setting throughout the app.
+   * @param {string} Tenant Identifier
+   */
+  setTenantIdentifier(tenantIdentifier: string) {
+    localStorage.setItem('mifosXTenantIdentifier', tenantIdentifier);
+  }
+
+  /**
+   * Sets server Date setting for max datepicker, default today
+   * @param {string} date
+   */
+  setBusinessDate(date: string) {
+    localStorage.setItem('mifosXServerDate', date);
+    this.businessDateValue.set(date);
+  }
+
+  /**
+   * Sets server Date config is enabled
+   * @param {string} enabled
+   */
+  setBusinessDateConfig(enabled: string) {
+    localStorage.setItem('mifosXServerBusinessDateEnabled', enabled);
+  }
+
+  /**
+   * Returns date format setting with fallback precedence:
+   * 1. User setting (localStorage)
+   * 2. Global env var
+   * 3. Hardcoded default
+   */
+  get dateFormat() {
+    const userSetting = localStorage.getItem('mifosXDateFormat');
+    if (userSetting) {
+      return JSON.parse(userSetting);
+    }
+    if (environment.defaultFormatDate) {
+      return environment.defaultFormatDate;
+    }
+    return 'dd MMMM yyyy';
+  }
+
+  /**
+   * Returns datetime format setting with fallback precedence:
+   * 1. User setting (localStorage)
+   * 2. Global env var
+   * 3. Hardcoded default
+   */
+  get datetimeFormat() {
+    const userSetting = localStorage.getItem('mifosXDatetimeFormat');
+    if (userSetting) {
+      return JSON.parse(userSetting);
+    }
+    if (environment.defaultFormatDatetime) {
+      return environment.defaultFormatDatetime;
+    }
+    return 'dd MMMM yyyy HH:mm:ss';
+  }
+
+  /**
+   * Returns language setting
+   */
+  get language() {
+    if (!localStorage.getItem('mifosXLanguage')) {
+      this.setDefaultLanguage();
+    }
+    return JSON.parse(localStorage.getItem('mifosXLanguage'));
+  }
+
+  get languageCode() {
+    const currentLanguage = this.language.code;
+    if (currentLanguage === 'es') {
+      return 'es-MX';
+    }
+    if (currentLanguage === 'en') {
+      return 'en-US';
+    }
+    return currentLanguage + '-' + currentLanguage.toUpperCase();
+  }
+
+  /**
+   * Returns Decimals to Display setting
+   */
+  get decimals() {
+    if (!localStorage.getItem('mifosXDecimalsToDisplay')) {
+      return '2';
+    }
+    return localStorage.getItem('mifosXDecimalsToDisplay');
+  }
+
+  /**
+   * Returns list of default server
+   */
+  get servers() {
+    return JSON.parse(localStorage.getItem('mifosXServers'));
+  }
+
+  /**
+   * Returns server setting
+   */
+  get server() {
+    if (localStorage.getItem('mifosXServerURL')) {
+      return localStorage.getItem('mifosXServerURL');
+    }
+    if (environment.baseApiUrl && environment.baseApiUrl !== '') {
+      return environment.baseApiUrl;
+    } else {
+      return this.servers()[0];
+    }
+  }
+
+  /**
+   * Returns server url with api path without version
+   */
+  get baseServerUrl() {
+    return this.server + environment.apiProvider;
+  }
+
+  /**
+   * Returns server url with api path and version
+   */
+  get serverUrl() {
+    return this.server + environment.apiProvider + environment.apiVersion;
+  }
+
+  /**
+   * Returns server url with api path and version
+   */
+  get serverHost() {
+    return this.server;
+  }
+
+  /**
+   * Returns current Business date server
+   */
+  get businessDate(): Date {
+    return this.dateUtils.convertToDate(
+      this.businessDateValue() ?? localStorage.getItem('mifosXServerDate'),
+      SettingsService.businessDateFormat
+    );
+  }
+
+  /**
+   * Returns current Business date Config if it's enabled
+   */
+  get businessDateConfig(): any {
+    return localStorage.getItem('mifosXServerBusinessDateEnabled');
+  }
+
+  /**
+   * Returns min Past date
+   */
+  get minPastDate(): Date {
+    return this.minAllowedDate;
+  }
+
+  /**
+   * Returns max Future date
+   */
+  get maxFutureDate(): Date {
+    return this.maxAllowedDate;
+  }
+
+  /**
+   * Returns list of Tenant Identifiers.
+   *
+   * With tenant management enabled the identifiers seen through its API are offered alongside the
+   * configured ones, so the selector reflects the tenants this installation actually has rather
+   * than only those someone remembered to list in the environment. Configured entries keep their
+   * order and come first. Without the feature the configured list is returned unchanged.
+   */
+  get tenantIdentifiers(): any {
+    const configured: string[] = JSON.parse(localStorage.getItem('mifosXTenantIdentifiers')) || [];
+    if (!environment.enableTenantManagement) {
+      return configured;
+    }
+    const discovered: string[] = JSON.parse(localStorage.getItem('mifosXDiscoveredTenantIdentifiers')) || [];
+    return [
+      ...new Set([
+        ...configured,
+        ...discovered
+      ])
+    ];
+  }
+
+  /**
+   * Returns Tenant Identifier
+   */
+  get tenantIdentifier(): string {
+    return localStorage.getItem('mifosXTenantIdentifier');
+  }
+
+  /**
+   * Validate If the enable_business_date configuration is enabled or disabled.
+   */
+  validateBusinessDateStatus(configurations: any) {
+    configurations.some((config: any) => {
+      if (config.name === SettingsService.businessDateConfigName) {
+        return config.enabled;
+      }
+    });
+  }
+
+  /**
+   * Get the Business Date or COB Date.
+   */
+  getBusinessDates(businessDateData: any, dateType: string): void {
+    businessDateData.some((data: any) => {
+      if (data.type === dateType) {
+        const dateVal = new Date(data.date);
+        this.setBusinessDate(this.dateUtils.formatDate(dateVal, SettingsService.businessDateFormat));
+        this.alertService.alert({
+          type: dateType + ' Set',
+          message: this.dateUtils.formatDate(dateVal, this.dateFormat)
+        });
+        return;
+      }
+    });
+  }
+
+  setThemeDarkEnabled(enabled: boolean) {
+    localStorage.setItem('mifosXThemeDarkEnabled', JSON.stringify(enabled));
+  }
+
+  get themeDarkEnabled(): boolean {
+    return JSON.parse(localStorage.getItem('mifosXThemeDarkEnabled'));
+  }
+}

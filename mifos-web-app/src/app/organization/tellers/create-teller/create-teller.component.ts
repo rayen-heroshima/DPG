@@ -1,0 +1,146 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { take } from 'rxjs';
+import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { OrganizationService } from '../../organization.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { Dates } from 'app/core/utils/dates';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Create teller component.
+ */
+@Component({
+  selector: 'mifosx-create-teller',
+  templateUrl: './create-teller.component.html',
+  styleUrls: ['./create-teller.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    CdkTextareaAutosize
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class CreateTellerComponent implements OnInit {
+  private formBuilder = inject(FormBuilder);
+  private organizationService = inject(OrganizationService);
+  private settingsService = inject(SettingsService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private dateUtils = inject(Dates);
+  private destroyRef = inject(DestroyRef);
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum date allowed. */
+  maxDate = new Date();
+  /** Teller form. */
+  tellerForm: FormGroup;
+  /** Office data. */
+  officeData: any;
+  /** TellerStatuses data. */
+  tellerStatusesData: any;
+
+  /**
+   * Retrieves the offices data from `resolve`.
+   * @param {FormBuilder} formBuilder Form Builder.
+   * @param {OrganizationService} organizationService Organization Service.
+   * @param {SettingsService} settingsService Settings Service.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Router} router Router for navigation.
+   * @param {Dates} dateUtils Date Utils to format date.
+   */
+  constructor() {
+    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data: { offices: any }) => {
+      this.officeData = data.offices;
+    });
+    this.tellerStatusesData = [
+      { id: 300, code: '300', value: 'Active' },
+      { id: 400, code: '400', value: 'Inactive' }
+    ];
+  }
+
+  /**
+   * Creates the teller form.
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.maxFutureDate;
+    this.createTellerForm();
+  }
+
+  /**
+   * Creates the teller form.
+   */
+  createTellerForm() {
+    this.tellerForm = this.formBuilder.group({
+      officeId: [
+        '',
+        Validators.required
+      ],
+      name: [
+        '',
+        [
+          Validators.required,
+          Validators.pattern('(^[A-Za-z]).*')
+        ]
+      ],
+      description: [''],
+      startDate: [
+        '',
+        Validators.required
+      ],
+      endDate: [''],
+      status: [
+        '',
+        Validators.required
+      ]
+    });
+  }
+
+  /**
+   * Submits the teller form and creates teller,
+   * if successful redirects to tellers.
+   */
+  submit() {
+    const tellerFormData = this.tellerForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevStartDate: Date = this.tellerForm.value.startDate;
+    const prevEndDate: Date = this.tellerForm.value.endDate;
+    if (tellerFormData.startDate instanceof Date) {
+      tellerFormData.startDate = this.dateUtils.formatDate(prevStartDate, dateFormat);
+    }
+    if (tellerFormData.endDate instanceof Date) {
+      tellerFormData.endDate = this.dateUtils.formatDate(prevEndDate, dateFormat);
+    }
+    const data = {
+      ...tellerFormData,
+      dateFormat,
+      locale
+    };
+    this.organizationService
+      .createTeller(data)
+      .pipe(take(1))
+      .subscribe((response: any) => {
+        this.router.navigate(
+          [
+            '../',
+            response.resourceId
+          ],
+          { relativeTo: this.route }
+        );
+      });
+  }
+}

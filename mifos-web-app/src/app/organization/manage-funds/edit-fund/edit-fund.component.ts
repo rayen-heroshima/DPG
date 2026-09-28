@@ -1,0 +1,70 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { take } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { OrganizationService } from 'app/organization/organization.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+@Component({
+  selector: 'mifosx-edit-fund',
+  templateUrl: './edit-fund.component.html',
+  styleUrls: ['./edit-fund.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EditFundComponent implements OnInit {
+  private organizationService = inject(OrganizationService);
+  private formBuilder = inject(FormBuilder);
+  private destroyRef = inject(DestroyRef);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  /** Selected Data. */
+  fundData: any;
+  /** Charge form. */
+  fundForm: FormGroup;
+
+  constructor() {
+    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data: { fundData: any }) => {
+      this.fundData = data.fundData;
+    });
+  }
+
+  ngOnInit() {
+    this.createFundForm();
+  }
+
+  /**
+   * Edit Fund form.
+   */
+  createFundForm() {
+    this.fundForm = this.formBuilder.group({
+      name: [
+        this.fundData.name,
+        Validators.required
+      ],
+      externalId: [this.fundData.externalId]
+    });
+  }
+
+  submit() {
+    const payload = this.fundForm.getRawValue();
+    this.organizationService
+      .editFund(this.fundData.id.toString(), payload)
+      .pipe(take(1))
+      .subscribe((response: any) => {
+        this.router.navigate(['../'], { relativeTo: this.route });
+      });
+  }
+}

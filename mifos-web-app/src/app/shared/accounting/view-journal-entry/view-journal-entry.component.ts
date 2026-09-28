@@ -1,0 +1,72 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import {
+  MatDialogRef,
+  MAT_DIALOG_DATA,
+  MatDialogTitle,
+  MatDialogContent,
+  MatDialogActions,
+  MatDialogClose
+} from '@angular/material/dialog';
+import { CdkScrollable } from '@angular/cdk/scrolling';
+import { DateFormatPipe } from '../../../pipes/date-format.pipe';
+import { DatetimeFormatPipe } from '../../../pipes/datetime-format.pipe';
+import { FormatNumberPipe } from '../../../pipes/format-number.pipe';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * View journal entry dialog component.
+ */
+@Component({
+  selector: 'mifosx-view-journal-entry',
+  templateUrl: './view-journal-entry.component.html',
+  styleUrls: ['./view-journal-entry.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatDialogTitle,
+    CdkScrollable,
+    MatDialogContent,
+    MatDialogActions,
+    MatDialogClose,
+    DateFormatPipe,
+    DatetimeFormatPipe,
+    FormatNumberPipe
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ViewJournalEntryComponent {
+  dialogRef = inject<MatDialogRef<ViewJournalEntryComponent>>(MatDialogRef);
+  data = inject(MAT_DIALOG_DATA);
+
+  existsPaymentDetails = false;
+  isCredit = false;
+  /**
+   * @param {MatDialogRef} dialogRef Component reference to dialog.
+   * @param {any} data Provides journal entry.
+   */
+  constructor() {
+    const data = this.data;
+
+    this.existsPaymentDetails =
+      data.journalEntry.transactionDetails != null && data.journalEntry.transactionDetails.paymentDetails != null;
+    this.isCredit = data.journalEntry.entryType?.value === 'CREDIT';
+  }
+
+  glAccountTypeClass(type?: string): string {
+    if (!type) return 'asset';
+    const normalized = type.toUpperCase();
+    if (normalized.includes('LIAB')) return 'liability';
+    if (normalized.includes('EQUITY')) return 'equity';
+    if (normalized.includes('INCOME') || normalized.includes('REVENUE')) return 'income';
+    if (normalized.includes('EXPENSE')) return 'expense';
+    return 'asset';
+  }
+}

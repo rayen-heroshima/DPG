@@ -1,0 +1,71 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<nav class="breadcrumb-wrapper" aria-label="Page navigation">
+  <div class="page-header">
+    <div class="title-row">
+      <span #breadcrumb class="breadcrumb-title">
+        {{ getTranslate(breadcrumbs[breadcrumbs?.length - 1].label) }}
+      </span>
+    </div>
+
+    @if (breadcrumbs.length - 1 !== 0) {
+      <ol class="breadcrumb-trail" aria-label="breadcrumb">
+        @for (breadcrumb of breadcrumbs; track breadcrumb; let first = $first; let last = $last) {
+          <li class="breadcrumb-item" [class.breadcrumb-item--active]="last">
+            @if (first && breadcrumb.label === 'Home') {
+              @if (breadcrumb.url) {
+                <a
+                  class="breadcrumb-link breadcrumb-link--home"
+                  [routerLink]="breadcrumb.url"
+                  [queryParams]="breadcrumb.queryParams"
+                  aria-label="Home"
+                >
+                  <mat-icon>home</mat-icon>
+                </a>
+              } @else {
+                <span class="breadcrumb-link breadcrumb-link--home">
+                  <mat-icon>home</mat-icon>
+                </span>
+              }
+            } @else if (!last) {
+              @if (breadcrumb.url) {
+                <a class="breadcrumb-link" [routerLink]="breadcrumb.url" [queryParams]="breadcrumb.queryParams">
+                  {{ getTranslate(breadcrumb.label) }}
+                </a>
+              } @else {
+                <span class="breadcrumb-text">{{ getTranslate(breadcrumb.label) }}</span>
+              }
+            } @else {
+              <span class="breadcrumb-current">{{ getTranslate(breadcrumb.label) }}</span>
+            }
+            @if (!last) {
+              <span class="breadcrumb-chevron" aria-hidden="true">›</span>
+            }
+          </li>
+        }
+      </ol>
+    }
+  </div>
+</nav>
+
+<ng-template #templateBreadcrumb let-popover="popover">
+  <h2>{{ 'labels.menus.Breadcrumbs' | translate }}</h2>
+  <p class="mw300">{{ "labels.text.User's current location" | translate }}</p>
+  <div class="layout-row align-end gap-2px responsive-column">
+    <button mat-raised-button color="warn" (click)="popover.close(); configurationWizardService.closeConfigWizard()">
+      {{ 'labels.buttons.Close' | translate }}
+    </button>
+    <button mat-raised-button color="primary" (click)="popover.close(); previousStep()">
+      {{ 'labels.buttons.Back' | translate }}
+    </button>
+    <button mat-raised-button color="primary" (click)="popover.close(); nextStep()">
+      {{ 'labels.buttons.Next' | translate }}
+    </button>
+  </div>
+</ng-template>

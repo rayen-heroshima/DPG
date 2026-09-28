@@ -1,0 +1,26 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+@use '@angular/material' as mat;
+
+$deeppurple-amber-color-config: (
+  primary: mat.m2-define-palette(mat.$m2-deep-purple-palette, 500, 300, 700),
+  accent: mat.m2-define-palette(mat.$m2-amber-palette, 400, 200, 600),
+  warn: mat.m2-define-palette(mat.$m2-red-palette)
+);
+
+$deeppurple-amber-theme: mat.m2-define-light-theme(
+  (
+    color: $deeppurple-amber-color-config,
+    density: 0
+  )
+);
+
+.deeppurple-amber-theme {
+  @include mat.all-component-colors($deeppurple-amber-theme);
+}

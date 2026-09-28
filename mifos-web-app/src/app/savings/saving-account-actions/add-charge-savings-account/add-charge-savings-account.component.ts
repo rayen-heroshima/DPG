@@ -1,0 +1,168 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormGroup, FormBuilder, Validators, FormControl, ReactiveFormsModule } from '@angular/forms';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { SavingsService } from '../../savings.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { Dates } from 'app/core/utils/dates';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Add Savings Charge component.
+ */
+@Component({
+  selector: 'mifosx-add-charge-savings-account',
+  templateUrl: './add-charge-savings-account.component.html',
+  styleUrls: ['./add-charge-savings-account.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class AddChargeSavingsAccountComponent implements OnInit {
+  private formBuilder = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private dateUtils = inject(Dates);
+  private savingsService = inject(SavingsService);
+  private settingsService = inject(SettingsService);
+  private destroyRef = inject(DestroyRef);
+
+  /** Minimum Due Date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum Due Date allowed. */
+  maxDate = new Date();
+  /** Add Savings Charge form. */
+  savingsChargeForm: FormGroup;
+  /** savings charge options. */
+  savingsChargeOptions: any;
+  /** savings Id of the savings account. */
+  savingAccountId: string;
+  /** charge details */
+  chargeDetails: any;
+
+  /**
+   * Retrieves charge template data from `resolve`
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   * @param {Dates} dateUtils Date Utils
+   * @param {SavingsService} savingsService Savings Service
+   * @param {SettingsService} settingsService Settings Service
+   */
+  constructor() {
+    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data: { savingsAccountActionData: any }) => {
+      this.savingsChargeOptions = data.savingsAccountActionData.chargeOptions;
+    });
+    this.savingAccountId = this.route.snapshot.params['savingAccountId'];
+  }
+
+  /**
+   * Creates the Savings Charge form.
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.maxFutureDate;
+    this.createSavingsChargeForm();
+    this.buildDependencies();
+  }
+
+  buildDependencies() {
+    this.savingsChargeForm.controls.chargeId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((chargeId) => {
+        this.savingsService.getChargeTemplate(chargeId).subscribe((data: any) => {
+          this.chargeDetails = data;
+          const chargeTimeType = data.chargeTimeType.id;
+          if (
+            data.chargeTimeType.value === 'Withdrawal Fee' ||
+            data.chargeTimeType.value === 'Saving No Activity Fee'
+          ) {
+            this.chargeDetails.dueDateNotRequired = true;
+          }
+          if (data.chargeTimeType.value === 'Annual Fee' || data.chargeTimeType.value === 'Monthly Fee') {
+            this.chargeDetails.chargeTimeTypeAnnualOrMonth = true;
+          }
+          if (!this.chargeDetails.dueDateNotRequired && !this.chargeDetails.chargeTimeTypeAnnualOrMonth) {
+            this.savingsChargeForm.addControl('dueDate', new FormControl('', Validators.required));
+          } else {
+            this.savingsChargeForm.removeControl('dueDate');
+          }
+          if (!this.chargeDetails.dueDateNotRequired && this.chargeDetails.chargeTimeTypeAnnualOrMonth) {
+            this.savingsChargeForm.addControl('feeOnMonthDay', new FormControl('', Validators.required));
+          } else {
+            this.savingsChargeForm.removeControl('feeOnMonthDay');
+          }
+          if (chargeTimeType.value === 'Monthly Fee') {
+            this.savingsChargeForm.addControl('feeInterval', new FormControl(data.feeInterval, Validators.required));
+          } else {
+            this.savingsChargeForm.removeControl('feeInterval');
+          }
+          this.savingsChargeForm.patchValue({
+            amount: data.amount,
+            chargeCalculationType: data.chargeCalculationType.id,
+            chargeTimeType: data.chargeTimeType.id
+          });
+        });
+      });
+  }
+
+  /**
+   * Creates the Savings Charge form.
+   */
+  createSavingsChargeForm() {
+    this.savingsChargeForm = this.formBuilder.group({
+      chargeId: [
+        '',
+        Validators.required
+      ],
+      amount: [
+        '',
+        Validators.required
+      ],
+      chargeCalculationType: [{ value: '', disabled: true }],
+      chargeTimeType: [{ value: '', disabled: true }]
+    });
+  }
+
+  /**
+   * Submits savings charge.
+   */
+  submit() {
+    const savingsCharge = this.savingsChargeForm.value;
+    savingsCharge.locale = this.settingsService.language.code;
+    if (!savingsCharge.feeInterval) {
+      savingsCharge.feeInterval = this.chargeDetails.feeInterval;
+    }
+    if (this.chargeDetails.dueDateNotRequired !== true) {
+      if (this.chargeDetails.chargeTimeTypeAnnualOrMonth) {
+        const monthDayFormat = 'MMMM-dd'; // TODO: Update once language and date settings are setup
+        savingsCharge.monthDayFormat = monthDayFormat;
+        if (savingsCharge.feeOnMonthDay) {
+          const prevDate = this.savingsChargeForm.value.feeOnMonthDay;
+          savingsCharge.feeOnMonthDay = this.dateUtils.formatDate(prevDate, monthDayFormat);
+        }
+      } else {
+        const dateFormat = this.settingsService.dateFormat;
+        savingsCharge.dateFormat = dateFormat;
+        if (savingsCharge.dueDate) {
+          const prevDate = this.savingsChargeForm.value.dueDate;
+          savingsCharge.dueDate = this.dateUtils.formatDate(prevDate, dateFormat);
+        }
+      }
+    }
+    this.savingsService.createSavingsCharge(this.savingAccountId, 'charges', savingsCharge).subscribe(() => {
+      this.router.navigate(['../../transactions'], { relativeTo: this.route });
+    });
+  }
+}

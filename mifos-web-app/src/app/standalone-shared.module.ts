@@ -1,0 +1,65 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+// src/app/shared/standalone-shared.module.ts
+
+import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { NgIf, NgFor } from '@angular/common';
+
+import { MatCard, MatCardContent, MatCardActions } from '@angular/material/card';
+import { MatFormField, MatLabel, MatError, MatSuffix, MatHint } from '@angular/material/form-field';
+import { MatInput } from '@angular/material/input';
+import { MatSelect } from '@angular/material/select';
+import { MatOption } from '@angular/material/core';
+import { MatDatepickerInput, MatDatepickerToggle, MatDatepicker } from '@angular/material/datepicker';
+import { MatButton } from '@angular/material/button';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { DateFormatPipe } from '@pipes/date-format.pipe';
+import { DatatableDisplayLabelPipe } from '@pipes/datatable-display-label.pipe';
+import { DocumentationLinkPipe } from '@pipes/documentation-link.pipe';
+import { TranslatePipe as NgxTranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe } from '@pipes/translate.pipe';
+import { HasPermissionDirective } from './directives/has-permission/has-permission.directive';
+
+export const STANDALONE_SHARED_IMPORTS = [
+  CommonModule,
+  ReactiveFormsModule,
+  RouterLink,
+  NgIf,
+  NgFor,
+
+  // Angular Material
+  MatCard,
+  MatCardContent,
+  MatCardActions,
+  MatFormField,
+  MatLabel,
+  MatError,
+  MatSuffix,
+  MatHint,
+  MatInput,
+  MatSelect,
+  MatOption,
+  MatDatepickerInput,
+  MatDatepickerToggle,
+  MatDatepicker,
+  MatButton,
+  MatCheckbox,
+  DateFormatPipe,
+  DatatableDisplayLabelPipe,
+  DocumentationLinkPipe,
+  HasPermissionDirective,
+
+  // Pipes and Directives
+  NgxTranslatePipe,
+  TranslatePipe
+];
+export { M3ButtonComponent } from './shared/m3-ui/m3-button/m3-button.component';
+export { HasPermissionDirective } from './directives/has-permission/has-permission.directive';

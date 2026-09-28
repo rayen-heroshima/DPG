@@ -1,0 +1,144 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormGroup, FormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { take } from 'rxjs';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { TranslateService } from '@ngx-translate/core';
+
+/** Custom Services */
+import { OrganizationService } from 'app/organization/organization.service';
+import { AlertService } from 'app/core/alert/alert.service';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Edit Payment Type component.
+ */
+@Component({
+  selector: 'mifosx-edit-payment-type',
+  templateUrl: './edit-payment-type.component.html',
+  styleUrls: ['./edit-payment-type.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    CdkTextareaAutosize,
+    MatCheckbox
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class EditPaymentTypeComponent implements OnInit {
+  private formBuilder = inject(FormBuilder);
+  private organizationService = inject(OrganizationService);
+  private destroyRef = inject(DestroyRef);
+  private alertService = inject(AlertService);
+  private translateService = inject(TranslateService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  /** Payment Type form. */
+  paymentTypeForm: FormGroup;
+  /** Payment Type Data. */
+  paymentTypeData: any;
+  /** Flag to check if payment type is system defined. */
+  isSystemDefined: boolean;
+
+  /**
+   * Retrieves the payment type data from `resolve`.
+   * @param {FormBuilder} formBuilder Form Builder.
+   * @param {OrganizationService} organizationService Organization Service.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {Router} router Router for navigation.
+   */
+  constructor() {
+    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data: { paymentType: any }) => {
+      this.paymentTypeData = data.paymentType;
+      this.isSystemDefined = data.paymentType.isSystemDefined;
+    });
+  }
+
+  /**
+   * Creates and sets the payment type form.
+   */
+  ngOnInit() {
+    this.createPaymentTypeForm();
+  }
+
+  /**
+   * Creates the payment type form.
+   */
+  createPaymentTypeForm() {
+    this.paymentTypeForm = this.formBuilder.group({
+      name: [
+        this.paymentTypeData.name,
+        Validators.required
+      ],
+      description: [this.paymentTypeData.description],
+      isCashPayment: [
+        { value: this.paymentTypeData.isCashPayment, disabled: this.isSystemDefined }
+      ],
+      position: [
+        { value: this.paymentTypeData.position, disabled: this.isSystemDefined },
+        [
+          Validators.required,
+          Validators.min(1)
+        ]
+      ]
+    });
+  }
+
+  /**
+   * Submits the payment type form and updates payment type.
+   * if successful redirects to payment types.
+   */
+  submit() {
+    const paymentType = this.paymentTypeForm.value;
+    if (this.isSystemDefined) {
+      const systemDefinedPayload = {
+        name: paymentType.name,
+        description: paymentType.description
+      };
+      this.organizationService
+        .updatePaymentType(this.paymentTypeData.id, systemDefinedPayload)
+        .pipe(take(1))
+        .subscribe({
+          next: (response) => {
+            this.router.navigate(['../../'], { relativeTo: this.route });
+          },
+          error: (error) => {
+            this.alertService.alert({
+              type: 'Error',
+              message:
+                error.error?.defaultUserMessage ||
+                this.translateService.instant('labels.text.Failed to update payment type. Please try again.')
+            });
+          }
+        });
+    } else {
+      this.organizationService
+        .updatePaymentType(this.paymentTypeData.id, paymentType)
+        .pipe(take(1))
+        .subscribe({
+          next: (response) => {
+            this.router.navigate(['../../'], { relativeTo: this.route });
+          },
+          error: (error) => {
+            this.alertService.alert({
+              type: 'Error',
+              message:
+                error.error?.defaultUserMessage ||
+                this.translateService.instant('labels.text.Failed to update payment type. Please try again.')
+            });
+          }
+        });
+    }
+  }
+}

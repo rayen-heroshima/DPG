@@ -1,0 +1,605 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, ViewChild, AfterViewInit, inject } from '@angular/core';
+import { MatPaginator } from '@angular/material/paginator';
+import { MatSort, MatSortHeader } from '@angular/material/sort';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { UntypedFormControl, ReactiveFormsModule } from '@angular/forms';
+
+/** Custom Data Source */
+import { AuditTrailsDataSource } from './audit-trail.datasource';
+
+/** Custom Utils */
+import { sanitizeCsvValue } from 'app/core/utils/csv.utils';
+
+/** Custom Services */
+import { SystemService } from '../system.service';
+import { SettingsService } from 'app/settings/settings.service';
+
+/** rxjs Imports */
+import { merge } from 'rxjs';
+import { tap, debounceTime, distinctUntilChanged, startWith, map } from 'rxjs/operators';
+import { Dates } from 'app/core/utils/dates';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { AsyncPipe } from '@angular/common';
+import { MatOption, MatAutocompleteTrigger, MatAutocomplete } from '@angular/material/autocomplete';
+import { MatProgressBar } from '@angular/material/progress-bar';
+import {
+  MatTable,
+  MatColumnDef,
+  MatHeaderCellDef,
+  MatHeaderCell,
+  MatCellDef,
+  MatCell,
+  MatHeaderRowDef,
+  MatHeaderRow,
+  MatRowDef,
+  MatRow
+} from '@angular/material/table';
+import { DatetimeFormatPipe } from '../../pipes/datetime-format.pipe';
+import { TranslatePipe } from '../../pipes/translate.pipe';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Audit Trails Component.
+ */
+@Component({
+  selector: 'mifosx-audit-trails',
+  templateUrl: './audit-trails.component.html',
+  styleUrls: ['./audit-trails.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    FaIconComponent,
+    MatAutocompleteTrigger,
+    MatAutocomplete,
+    MatProgressBar,
+    MatTable,
+    MatSort,
+    MatColumnDef,
+    MatHeaderCellDef,
+    MatHeaderCell,
+    MatSortHeader,
+    MatCellDef,
+    MatCell,
+    MatHeaderRowDef,
+    MatHeaderRow,
+    MatRowDef,
+    MatRow,
+    MatPaginator,
+    AsyncPipe,
+    DatetimeFormatPipe
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class AuditTrailsComponent implements OnInit, AfterViewInit {
+  private route = inject(ActivatedRoute);
+  private systemService = inject(SystemService);
+  private dateUtils = inject(Dates);
+  private settingsService = inject(SettingsService);
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum date allowed. */
+  maxDate = new Date();
+  /** Audit Trails Data */
+  auditTrailsData: any;
+  /** Filtered user data for autocomplete. */
+  filteredUserData: any;
+  /** Filtered action data for autocomplete. */
+  filteredActionData: any;
+  /** Filtered entity data for autocomplete. */
+  filteredEntityData: any;
+  /** Filtered checker data for autocomplete. */
+  filteredCheckerData: any;
+  /** Audit Trail Search Template Data. */
+  auditTrailSearchTemplateData: any;
+  /** Columns to be displayed in audit trails table. */
+  displayedColumns: string[] = [
+    'id',
+    'resourceId',
+    'processingResult',
+    'maker',
+    'actionName',
+    'entityName',
+    'officeName',
+    'madeOnDate',
+    'checker',
+    'checkedOnDate',
+    'clientIp'
+  ];
+  /** Data source for audit trails table. */
+  dataSource: AuditTrailsDataSource;
+  /** Audit Trails filter. */
+  filterAuditTrailsBy = [
+    {
+      type: 'actionName',
+      value: ''
+    },
+    {
+      type: 'entityName',
+      value: ''
+    },
+    {
+      type: 'resourceId',
+      value: ''
+    },
+    {
+      type: 'makerId',
+      value: ''
+    },
+    {
+      type: 'makerDateTimeFrom',
+      value: ''
+    },
+    {
+      type: 'makerDateTimeTo',
+      value: ''
+    },
+    {
+      type: 'checkerDateTimeFrom',
+      value: ''
+    },
+    {
+      type: 'checkerDateTimeTo',
+      value: ''
+    },
+    {
+      type: 'checkerId',
+      value: ''
+    },
+    {
+      type: 'processingResult',
+      value: ''
+    },
+    {
+      type: 'dateFormat',
+      value: this.settingsService.dateFormat
+    },
+    {
+      type: 'locale',
+      value: this.settingsService.language.code
+    }
+  ];
+  /** User form control. */
+  user = new UntypedFormControl('');
+  /** From date form control. */
+  fromDate = new UntypedFormControl();
+  /** From time form control. */
+  fromTime = new UntypedFormControl();
+  /** Checked from date form control. */
+  checkedFromDate = new UntypedFormControl();
+  /** Checked from time form control. */
+  checkedFromTime = new UntypedFormControl();
+  /** Processing result form control. */
+  processingResult = new UntypedFormControl();
+  /** Action name form control. */
+  actionName = new UntypedFormControl();
+  /** Resource ID form control. */
+  resourceId = new UntypedFormControl('');
+  /** To date form control. */
+  toDate = new UntypedFormControl();
+  /** To time form control. */
+  toTime = new UntypedFormControl();
+  /** Checked to date form control. */
+  checkedToDate = new UntypedFormControl();
+  /** Checked to time form control. */
+  checkedToTime = new UntypedFormControl();
+  /** Entity name form control. */
+  entityName = new UntypedFormControl();
+  /** Checker form control. */
+  checker = new UntypedFormControl();
+
+  isLoading = false;
+
+  /** Paginator for audit trails table. */
+  @ViewChild(MatPaginator) paginator: MatPaginator;
+  /** Sorter for audit trails table. */
+  @ViewChild(MatSort) sort: MatSort;
+
+  /**
+   * Retrieves the audit trail search template data from `resolve`.
+   * @param {ActivatedRoute} route Activated Route.
+   * @param {SystemService} systemService System Service.
+   * @param {Dates} dateUtils Dates utils
+   * @param {SettingsService} settingsService Settings Service
+   */
+  constructor() {
+    this.route.data.subscribe((data: { auditTrailSearchTemplate: any }) => {
+      this.auditTrailSearchTemplateData = data.auditTrailSearchTemplate;
+    });
+  }
+
+  /**
+   * Sets filtered users, actions and entities for autocomplete and audit trails table.
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.setFilteredUsers();
+    this.setFilteredActions();
+    this.setFilteredEntities();
+    this.setFilteredCheckers();
+    this.dataSource = new AuditTrailsDataSource(this.systemService);
+    this.getAuditTrails();
+  }
+
+  /**
+   * Subscribes to all search filters:
+   * User Name, From Date, To Date, Checked From Date, Checked To Date, Resource ID, Action Name, Entity Name, Checker
+   * sort change and page change.
+   */
+  ngAfterViewInit() {
+    this.clearFilterWhenEmptied(this.user, 'makerId');
+
+    this.fromDate.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        tap((filterValue) => {
+          this.applyFilter(this.getDateTime(filterValue, this.fromTime.value), 'makerDateTimeFrom');
+        })
+      )
+      .subscribe();
+
+    this.fromTime.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        tap((timeValue) => {
+          this.applyFilter(this.getDateTime(this.fromDate.value, timeValue), 'makerDateTimeFrom');
+        })
+      )
+      .subscribe();
+
+    this.toDate.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        tap((filterValue) => {
+          this.applyFilter(this.getDateTime(filterValue, this.toTime.value), 'makerDateTimeTo');
+        })
+      )
+      .subscribe();
+
+    this.toTime.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        tap((timeValue) => {
+          this.applyFilter(this.getDateTime(this.toDate.value, timeValue), 'makerDateTimeTo');
+        })
+      )
+      .subscribe();
+
+    this.checkedFromDate.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        tap((filterValue) => {
+          this.applyFilter(this.getDateTime(filterValue, this.checkedFromTime.value), 'checkerDateTimeFrom');
+        })
+      )
+      .subscribe();
+
+    this.checkedFromTime.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        tap((timeValue) => {
+          this.applyFilter(this.getDateTime(this.checkedFromDate.value, timeValue), 'checkerDateTimeFrom');
+        })
+      )
+      .subscribe();
+
+    this.checkedToDate.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        tap((filterValue) => {
+          this.applyFilter(this.getDateTime(filterValue, this.checkedToTime.value), 'checkerDateTimeTo');
+        })
+      )
+      .subscribe();
+
+    this.checkedToTime.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        tap((timeValue) => {
+          this.applyFilter(this.getDateTime(this.checkedToDate.value, timeValue), 'checkerDateTimeTo');
+        })
+      )
+      .subscribe();
+
+    this.resourceId.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        tap((filterValue) => {
+          this.applyFilter(filterValue, 'resourceId');
+        })
+      )
+      .subscribe();
+
+    this.clearFilterWhenEmptied(this.actionName, 'actionName');
+    this.clearFilterWhenEmptied(this.entityName, 'entityName');
+    this.clearFilterWhenEmptied(this.checker, 'checkerId');
+
+    //this.sort.sortChange.subscribe(() => (this.paginator.pageIndex = 0));
+
+    if (this.sort && this.paginator) {
+      merge(this.sort.sortChange, this.paginator.page)
+        .pipe(tap(() => this.loadAuditTrailsPage()))
+        .subscribe();
+    }
+  }
+
+  /**
+   * Initializes the data source for audit trails table and loads the first page.
+   */
+  getAuditTrails() {
+    this.isLoading = true;
+    const isActive: string = this.sort ? this.sort.active : '';
+    const direction: string = this.sort ? this.sort.direction : '';
+    const pageIndex: number = this.paginator ? this.paginator.pageIndex : 0;
+    const pageSize: any = this.paginator ? this.paginator.pageSize : 20;
+
+    this.dataSource.getAuditTrails(this.filterAuditTrailsBy, isActive, direction, pageIndex, pageSize);
+    this.isLoading = false;
+  }
+
+  /**
+   * Loads a page of audit trails.
+   */
+  loadAuditTrailsPage() {
+    if (this.sort && !this.sort.direction) {
+      delete this.sort.active;
+    }
+    this.getAuditTrails();
+  }
+
+  /**
+   * Filters data in audit trails table based on passed value and poperty.
+   * @param {string} filterValue Value to filter data.
+   * @param {string} property Property to filter data by.
+   */
+  applyFilter(filterValue: string, property: string) {
+    const findIndex = this.filterAuditTrailsBy.findIndex((filter) => filter.type === property);
+    if (this.filterAuditTrailsBy[findIndex].value === filterValue) {
+      return;
+    }
+    if (this.paginator) {
+      this.paginator.pageIndex = 0;
+    }
+    this.filterAuditTrailsBy[findIndex].value = filterValue;
+    this.loadAuditTrailsPage();
+  }
+
+  /**
+   * Clears an autocomplete filter once its input is emptied.
+   * A selection is applied by the autocomplete's `optionSelected` output, so half-typed text never
+   * reaches the server: it is not a valid option and the request would come back with no records.
+   * @param {UntypedFormControl} control Autocomplete form control.
+   * @param {string} property Filter property the control feeds.
+   */
+  private clearFilterWhenEmptied(control: UntypedFormControl, property: string): void {
+    control.valueChanges.pipe(debounceTime(500), distinctUntilChanged()).subscribe((value) => {
+      if (!value) {
+        this.applyFilter('', property);
+      }
+    });
+  }
+
+  /**
+   * Displays user name in form control input.
+   * @param {any} user User data.
+   * @returns {string} User name if valid otherwise undefined.
+   */
+  displayUserName(user?: any): string | undefined {
+    return user ? user.name : undefined;
+  }
+
+  /**
+   * Displays action name in form control input.
+   * @param {any} action Action data.
+   * @returns {string} Action name if valid otherwise undefined.
+   */
+  displayActionName(action?: any): string | undefined {
+    return action ? action : undefined;
+  }
+
+  /**
+   * Displays entity name in form control input.
+   * @param {any} entity Entity data.
+   * @returns {string} Entity name if valid otherwise undefined.
+   */
+  displayEntityName(entity?: any): string | undefined {
+    return entity ? entity : undefined;
+  }
+
+  /**
+   * Sets filtered users for autocomplete.
+   */
+  setFilteredUsers() {
+    this.filteredUserData = this.user.valueChanges.pipe(
+      startWith(''),
+      map((user: any) => (typeof user === 'string' ? user : user.name)),
+      map((userName: string) =>
+        userName ? this.filterUserAutocompleteData(userName) : this.auditTrailSearchTemplateData.appUsers
+      )
+    );
+  }
+
+  /**
+   * Sets filtered checkers for autocomplete.
+   */
+  setFilteredCheckers() {
+    this.filteredCheckerData = this.checker.valueChanges.pipe(
+      startWith(''),
+      map((user: any) => (typeof user === 'string' ? user : user.name)),
+      map((userName: string) =>
+        userName ? this.filterUserAutocompleteData(userName) : this.auditTrailSearchTemplateData.appUsers
+      )
+    );
+  }
+
+  /**
+   * Sets filtered actions for autocomplete.
+   */
+  setFilteredActions() {
+    this.filteredActionData = this.actionName.valueChanges.pipe(
+      startWith(''),
+      map((action: any) => (typeof action === 'string' ? action : '')),
+      map((actionName: string) =>
+        actionName ? this.filterActionAutocompleteData(actionName) : this.auditTrailSearchTemplateData.actionNames
+      )
+    );
+  }
+
+  /**
+   * Sets filtered entities for autocomplete.
+   */
+  setFilteredEntities() {
+    this.filteredEntityData = this.entityName.valueChanges.pipe(
+      startWith(''),
+      map((entity: any) => (typeof entity === 'string' ? entity : '')),
+      map((entityName: string) =>
+        entityName ? this.filterEntityAutocompleteData(entityName) : this.auditTrailSearchTemplateData.entityNames
+      )
+    );
+  }
+
+  /**
+   * Filters users.
+   * @param {string} userName User name to filter user by.
+   * @returns {any} Filtered users.
+   */
+  private filterUserAutocompleteData(userName: string): any {
+    return this.auditTrailSearchTemplateData.appUsers.filter((user: any) =>
+      user.username.toLowerCase().includes(userName.toLowerCase())
+    );
+  }
+
+  /**
+   * Filters actions.
+   * @param {string} actionName Action name to filter action by.
+   * @returns {any} Filtered actions.
+   */
+  private filterActionAutocompleteData(actionName: string): any {
+    return this.auditTrailSearchTemplateData.actionNames.filter((action: any) =>
+      action.toLowerCase().includes(actionName.toLowerCase())
+    );
+  }
+
+  /**
+   * Filters entities.
+   * @param {string} entityName Entity name to filter action by.
+   * @returns {any} Filtered entities.
+   */
+  private filterEntityAutocompleteData(entityName: string): any {
+    return this.auditTrailSearchTemplateData.entityNames.filter((entity: any) =>
+      entity.toLowerCase().includes(entityName.toLowerCase())
+    );
+  }
+
+  /**
+   * Generates the CSV file of Audit Trails Data.
+   */
+  downloadCSV() {
+    const dateFormat = this.settingsService.dateFormat;
+    const header = [
+      'ID',
+      'Resource ID',
+      'Status',
+      'Office',
+      'Made On',
+      'Maker',
+      'Checked On',
+      'Checker',
+      'Entity',
+      'Action',
+      'Client'
+    ];
+    const headerCode = [
+      'id',
+      'resourceId',
+      'processingResult',
+      'officeName',
+      'madeOnDate',
+      'maker',
+      'checkedOnDate',
+      'checker',
+      'entityName',
+      'actionName',
+      'clientName'
+    ];
+    this.systemService
+      .getAuditTrails(this.filterAuditTrailsBy, this.sort?.active ?? '', this.sort?.direction ?? '', 0, -1)
+      .subscribe((response: any) => {
+        if (response !== undefined) {
+          let csv = response.pageItems.map((row: any) =>
+            headerCode.map((fieldName) => {
+              // Resolve the raw string value first, THEN sanitize before JSON.stringify wraps
+              // it in double-quotes for CSV quoting. Sanitizing the JSON.stringify output would
+              // be ineffective because the leading " masks formula-trigger characters from the
+              // sanitizer, and Excel strips those outer quotes when parsing the CSV cell.
+              let rawValue: string;
+              if (
+                (fieldName === 'madeOnDate' || fieldName === 'checkedOnDate') &&
+                row[fieldName] != null &&
+                row[fieldName] !== ''
+              ) {
+                rawValue = this.dateUtils.formatDate(row[fieldName], 'yyyy-MM-ddTHH:mm:ssZ');
+              } else {
+                rawValue = row[fieldName] == null ? '' : String(row[fieldName]);
+              }
+              return JSON.stringify(sanitizeCsvValue(rawValue));
+            })
+          );
+          csv.unshift(`data:text/csv;charset=utf-8,${header.join()}`);
+          csv = csv.join('\r\n');
+          const link = document.createElement('a');
+          link.setAttribute('href', encodeURI(csv));
+          link.setAttribute('download', 'Audit Trails.csv');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      });
+  }
+
+  /**
+   * Gets the date from the passed timestamp.
+   *
+   * TODO: Update once language and date settings are setup.
+   *
+   * @param {any} timestamp Timestamp from which date is to be extracted.
+   */
+  private getDate(timestamp: any) {
+    const dateFormat = this.settingsService.dateFormat;
+    return this.dateUtils.formatDate(timestamp, dateFormat);
+  }
+  private getDateTime(date: Date, timeStr: string): string {
+    if (!date) {
+      return '';
+    }
+    const result = new Date(date);
+    if (timeStr) {
+      const [
+        hours,
+        minutes,
+        seconds
+      ] = timeStr.split(':').map(Number);
+      result.setHours(hours || 0);
+      result.setMinutes(minutes || 0);
+      result.setSeconds(seconds || 0);
+    }
+    return this.dateUtils.formatDate(result, 'yyyy-MM-ddTHH:mm:ssZ');
+  }
+}

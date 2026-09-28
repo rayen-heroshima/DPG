@@ -1,0 +1,108 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms';
+import { Dates } from 'app/core/utils/dates';
+import { Currency } from 'app/shared/models/general.model';
+import { InputAmountComponent } from '../../../../shared/input-amount/input-amount.component';
+import { CdkTextareaAutosize } from '@angular/cdk/text-field';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+import { LoanAccountActionsBaseComponent } from '../loan-account-actions-base.component';
+
+@Component({
+  selector: 'mifosx-loan-credit-balance-refund',
+  templateUrl: './loan-credit-balance-refund.component.html',
+  styleUrls: ['./loan-credit-balance-refund.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    InputAmountComponent,
+    CdkTextareaAutosize
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class LoanCreditBalanceRefundComponent extends LoanAccountActionsBaseComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private dateUtils = inject(Dates);
+
+  /** Minimum Date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum Date allowed. */
+  maxDate = new Date();
+  /** Credit Balance Loan Form */
+  creditBalanceLoanForm: UntypedFormGroup;
+  currency: Currency;
+
+  constructor() {
+    super();
+  }
+
+  /**
+   * Creates the Credit Balance loan form
+   * and initialize with the required values
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.createCreditBalanceLoanForm();
+    this.setCreditBalanceLoanDetails();
+    if (this.dataObject.currency) {
+      this.currency = this.dataObject.currency;
+    }
+  }
+
+  get requiredPermission(): string {
+    return this.isWorkingCapital ? 'CREDITBALANCEREFUND_WORKINGCAPITALLOAN' : 'CREDITBALANCEREFUND_LOAN';
+  }
+
+  /**
+   * Creates the create close form.
+   */
+  createCreditBalanceLoanForm() {
+    this.creditBalanceLoanForm = this.formBuilder.group({
+      transactionDate: [
+        this.isWorkingCapital ? this.settingsService.businessDate : new Date(),
+        Validators.required
+      ],
+      transactionAmount: [
+        '',
+        Validators.required
+      ],
+      externalId: '',
+      note: ''
+    });
+  }
+
+  setCreditBalanceLoanDetails() {
+    this.creditBalanceLoanForm.patchValue({
+      transactionAmount: this.dataObject.amount ?? this.dataObject.expectedAmount
+    });
+  }
+
+  /** Submits the Credit Balance form */
+  submit() {
+    const creditBalanceLoanFormData = this.creditBalanceLoanForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevTransactionDate: Date = this.creditBalanceLoanForm.value.transactionDate;
+    if (creditBalanceLoanFormData.transactionDate instanceof Date) {
+      creditBalanceLoanFormData.transactionDate = this.dateUtils.formatDate(prevTransactionDate, dateFormat);
+    }
+    const data = {
+      ...creditBalanceLoanFormData,
+      dateFormat,
+      locale
+    };
+    data['transactionAmount'] = data['transactionAmount'] * 1;
+    const request = this.isWorkingCapital
+      ? this.loanService.applyWorkingCapitalLoanActionCommand(this.loanId, data, 'creditBalanceRefund')
+      : this.loanService.submitLoanActionButton(this.loanId, data, this.dataObject.type.code.split('.')[1]);
+    request.subscribe((_response: any) => {
+      this.gotoLoanView('transactions');
+    });
+  }
+}

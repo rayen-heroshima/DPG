@@ -1,0 +1,102 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, Validators, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { SharesService } from 'app/shares/shares.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { Dates } from 'app/core/utils/dates';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Activate Shares Account Component
+ */
+@Component({
+  selector: 'mifosx-activate-shares-account',
+  templateUrl: './activate-shares-account.component.html',
+  styleUrls: ['./activate-shares-account.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ActivateSharesAccountComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private sharesService = inject(SharesService);
+  private dateUtils = inject(Dates);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private settingsService = inject(SettingsService);
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum date allowed. */
+  maxDate = new Date();
+  /** Activate Share Account form. */
+  activateSharesAccountForm: UntypedFormGroup;
+  /** Shares Account Id */
+  accountId: any;
+
+  /**
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {SharesService} sharesService Shares Service
+   * @param {Dates} dateUtils Date Utils
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   * @param {SettingsService} settingsService Settings Service.
+   */
+  constructor() {
+    this.accountId = this.route.parent.snapshot.params['shareAccountId'];
+  }
+
+  /**
+   * Creates the activate shares form.
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.createActivateSharesAccountForm();
+  }
+
+  /**
+   * Creates the activate shares account form.
+   */
+  createActivateSharesAccountForm() {
+    this.activateSharesAccountForm = this.formBuilder.group({
+      activatedDate: [
+        '',
+        Validators.required
+      ]
+    });
+  }
+
+  /**
+   * Submits the form and activates the share account,
+   * if successful redirects to the share account.
+   */
+  submit() {
+    const activateSharesAccountFormData = this.activateSharesAccountForm.value;
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const prevActivatedDate: Date = this.activateSharesAccountForm.value.activatedDate;
+    if (activateSharesAccountFormData.activatedDate instanceof Date) {
+      activateSharesAccountFormData.activatedDate = this.dateUtils.formatDate(prevActivatedDate, dateFormat);
+    }
+    const data = {
+      ...activateSharesAccountFormData,
+      dateFormat,
+      locale
+    };
+    this.sharesService.executeSharesAccountCommand(this.accountId, 'activate', data).subscribe(() => {
+      this.router.navigate(['../../'], { relativeTo: this.route });
+    });
+  }
+}

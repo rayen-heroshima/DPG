@@ -1,0 +1,83 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { UntypedFormGroup, UntypedFormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+
+/** Custom Services */
+import { CentersService } from 'app/centers/centers.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Centers Assign Staff Component
+ */
+@Component({
+  selector: 'mifosx-center-assign-staff',
+  templateUrl: './center-assign-staff.component.html',
+  styleUrls: ['./center-assign-staff.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class CenterAssignStaffComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+  private centersService = inject(CentersService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
+  /** Center Assign Staff form. */
+  centerAssignStaffForm: UntypedFormGroup;
+  /** Field Officer Data */
+  staffData: any;
+  /** Center Data */
+  centerData: any;
+
+  /**
+   * Fetches Center Action Data from `resolve`
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {SavingsService} savingsService Savings Service
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   */
+  constructor() {
+    this.route.data.subscribe((data: { centersActionData: any }) => {
+      this.centerData = data.centersActionData;
+    });
+  }
+
+  /**
+   * Creates the center assign staff form.
+   */
+  ngOnInit() {
+    this.staffData = this.centerData.staffOptions;
+    this.createCenterAssignStaffForm();
+  }
+
+  /**
+   * Creates the center assign staff form.
+   */
+  createCenterAssignStaffForm() {
+    this.centerAssignStaffForm = this.formBuilder.group({
+      staffId: ['']
+    });
+  }
+
+  /**
+   * Submits the form and assigns staff for the center.
+   */
+  submit() {
+    this.centersService
+      .executeGroupActionCommand(this.centerData.id, 'assignStaff', this.centerAssignStaffForm.value)
+      .subscribe(() => {
+        this.router.navigate(['../../'], { relativeTo: this.route });
+      });
+  }
+}

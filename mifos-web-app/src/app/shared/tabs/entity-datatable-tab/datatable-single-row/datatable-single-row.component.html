@@ -1,0 +1,130 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="tab-container mat-typography">
+  <h3>{{ formatTabLabel(datatableName) }}</h3>
+  <div class="layout-row align-end m-b-20">
+    @if (!dataObject.data[0]) {
+      <button mat-raised-button color="primary" (click)="add()">
+        <fa-icon icon="plus" class="m-r-10"></fa-icon>{{ 'labels.buttons.Add' | translate }}
+      </button>
+    }
+    @if (dataObject.data[0]) {
+      <button mat-raised-button color="primary" (click)="edit()">
+        <fa-icon icon="edit" class="m-r-10"></fa-icon>{{ 'labels.buttons.Edit' | translate }}
+      </button>
+    }
+    @if (dataObject.data[0]) {
+      <button class="delete-button" mat-raised-button color="warn" (click)="delete()">
+        <fa-icon icon="trash" class="m-r-10"></fa-icon>{{ 'labels.buttons.Delete' | translate }}
+      </button>
+    }
+  </div>
+
+  <mat-divider></mat-divider>
+
+  @if (isLoading) {
+    <mifosx-page-loader [message]="'labels.inputs.Loading datatables' | translate"></mifosx-page-loader>
+  }
+
+  @if (dataObject.data.length > 0) {
+    <mat-card [hidden]="isLoading" class="data-display-card m-t-20">
+      <mat-card-content>
+        <div class="table-scroll-wrapper">
+          <div class="data-grid">
+            @for (columnHeader of dataObject.columnHeaders; track columnHeader; let i = $index) {
+              <div class="data-item" [ngClass]="setAttributeClass(columnHeader.columnName)">
+                <div class="data-label mat-body-strong">
+                  @if (getSystemColumnTranslationKey(columnHeader.columnName); as translationKey) {
+                    {{ translationKey | translate }}
+                  } @else {
+                    {{ formatDisplayLabel(columnHeader.columnName) }}
+                  }
+                </div>
+                <div class="data-value">
+                  @switch (getColumnType(columnHeader.columnDisplayType, columnHeader.columnType)) {
+                    @case ('DATE') {
+                      <span>
+                        {{ dataObject.data[0].row[i] | dateFormat }}
+                      </span>
+                    }
+                    @case ('DATETIME') {
+                      <span>
+                        {{ dataObject.data[0].row[i] | datetimeFormat }}
+                      </span>
+                    }
+                    @case ('INTEGER') {
+                      <span>
+                        @if (getResolvedUserName(columnHeader.columnName, dataObject.data[0].row[i])) {
+                          {{ getResolvedUserName(columnHeader.columnName, dataObject.data[0].row[i]) }}
+                        } @else {
+                          {{ formatValue(dataObject.data[0].row[i]) }}
+                        }
+                      </span>
+                    }
+                    @case ('DECIMAL') {
+                      <span>
+                        @if (datatables.isPhoneNumberField(columnHeader.columnName)) {
+                          {{ dataObject.data[0].row[i] }}
+                        } @else {
+                          {{ dataObject.data[0].row[i] | formatNumber }}
+                        }
+                      </span>
+                    }
+                    @case ('CODELOOKUP') {
+                      <span>
+                        {{ datatables.getCodeLookupValue(columnHeader, dataObject.data[0].row[i]) }}
+                      </span>
+                    }
+                    @case ('TEXT') {
+                      <span class="long-text">
+                        {{ formatValue(dataObject.data[0].row[i]) }}
+                      </span>
+                    }
+                    @case ('BOOLEAN') {
+                      <span>
+                        {{ formatValue(dataObject.data[0].row[i]) }}
+                      </span>
+                    }
+                    @case ('JSON') {
+                      <pre class="json-value">{{ formatJsonValue(dataObject.data[0].row[i]) }}</pre>
+                    }
+                    @default {
+                      <div class="default-value">
+                        @if (columnHeader.columnName === 'created_at' || columnHeader.columnName === 'updated_at') {
+                          <span>
+                            {{ dataObject.data[0].row[i] | datetimeFormat }}
+                          </span>
+                        } @else if (isValidUrl(dataObject.data[0].row[i])) {
+                          <span class="m-r-5">
+                            <button
+                              mat-icon-button
+                              matTooltip="{{ 'tooltips.View Link' | translate }}"
+                              (click)="openSite(dataObject.data[0].row[i])"
+                              matTooltipPosition="right"
+                              class="small-icon"
+                            >
+                              <fa-icon icon="eye" size="lg"></fa-icon>
+                            </button>
+                          </span>
+                          {{ dataObject.data[0].row[i] }}
+                        } @else {
+                          {{ formatValue(dataObject.data[0].row[i]) }}
+                        }
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

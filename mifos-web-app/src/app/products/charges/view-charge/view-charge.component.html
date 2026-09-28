@@ -1,0 +1,174 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="layout-row align-end gap-2px responsive-column container m-b-20">
+  <button mat-raised-button color="primary" [routerLink]="['edit']" *mifosxHasPermission="'UPDATE_CHARGE'">
+    <fa-icon icon="edit" class="m-r-10"></fa-icon>
+    {{ 'labels.heading.Edit' | translate }}
+  </button>
+  <button mat-raised-button color="warn" (click)="deleteCharge()" *mifosxHasPermission="'DELETE_CHARGE'">
+    <fa-icon icon="trash" class="m-r-10"></fa-icon>
+    {{ 'labels.heading.Delete' | translate }}
+  </button>
+</div>
+
+<div class="container">
+  <mat-card>
+    <mat-card-content>
+      <div class="layout-row-wrap">
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Charge Name' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ chargeData.name }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Charge Applies To' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ chargeData.chargeAppliesTo.value | translateKey: 'catalogs' }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Penalty' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ chargeData.penalty === true | yesNo }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Currency' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ chargeData.currency.name }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Amount' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ chargeData.amount }}
+        </div>
+
+        @if (minCap) {
+          <div class="flex-50 mat-body-strong">
+            {{ 'labels.inputs.Minimum Charge Cap' | translate }}
+          </div>
+        }
+
+        @if (minCap) {
+          <div class="flex-50">
+            {{ chargeData.minCap }}
+          </div>
+        }
+
+        @if (maxCap) {
+          <div class="flex-50 mat-body-strong">
+            {{ 'labels.inputs.Maximum Charge Cap' | translate }}
+          </div>
+        }
+
+        @if (maxCap) {
+          <div class="flex-50">
+            {{ chargeData.maxCap }}
+          </div>
+        }
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Charge Time Type' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ chargeData.chargeTimeType.value | translateKey: 'catalogs' }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Charge Calculation Type' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ chargeData.chargeCalculationType.value | translateKey: 'catalogs' }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.inputs.Charge Payment Mode' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ chargeData.chargePaymentMode.value | translateKey: 'catalogs' }}
+        </div>
+
+        <div class="flex-50 mat-body-strong">
+          {{ 'labels.status.Active' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ chargeData.active === true | yesNo }}
+        </div>
+
+        @if (chargeData.chargeTimeType.id === 9 && chargeData.feeFrequency) {
+          <div class="flex-50 mat-body-strong">
+            {{ 'labels.inputs.Add Fee Frequency' | translate }}
+          </div>
+        }
+
+        @if (chargeData.chargeTimeType.id === 9 && chargeData.feeFrequency && chargeData.feeFrequency) {
+          <div class="flex-50">
+            {{ chargeData.feeFrequency.value | translateKey: 'catalogs' }}
+          </div>
+        }
+
+        @if (chargeData.chargeTimeType.id === 9 && chargeData.feeInterval) {
+          <div class="flex-50 mat-body-strong">
+            {{ 'labels.inputs.Frequency Interval' | translate }}
+          </div>
+        }
+
+        @if (chargeData.chargeTimeType.id === 9 && chargeData.feeInterval) {
+          <div class="flex-50">
+            {{ chargeData.feeInterval }}
+          </div>
+        }
+
+        @if (chargeData.incomeOrLiabilityAccount) {
+          <mifosx-gl-account-display
+            class="flex-100"
+            [accountTitle]="'Income From Charges'"
+            [glAccount]="chargeData.incomeOrLiabilityAccount"
+            [withTitle]="'50%'"
+          >
+          </mifosx-gl-account-display>
+        }
+
+        @if (chargeData.taxGroup) {
+          <div class="flex-50 mat-body-strong">
+            {{ 'labels.inputs.Tax Group' | translate }}
+          </div>
+        }
+
+        @if (chargeData.taxGroup) {
+          <div class="flex-50">
+            {{ chargeData.taxGroup.name }}
+          </div>
+        }
+      </div>
+
+      <div class="layout-row layout-align-center gap-2percent column-on-mobile">
+        <button type="button" mat-raised-button color="primary" [routerLink]="['../']">
+          {{ 'labels.buttons.Back' | translate }}
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

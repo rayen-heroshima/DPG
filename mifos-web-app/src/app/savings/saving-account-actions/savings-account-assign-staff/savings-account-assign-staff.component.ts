@@ -1,0 +1,117 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports */
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormGroup, FormBuilder, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Dates } from 'app/core/utils/dates';
+
+/** Custom Services */
+import { SavingsService } from 'app/savings/savings.service';
+import { SettingsService } from 'app/settings/settings.service';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+/**
+ * Savings Account Assign Staff Component
+ */
+@Component({
+  selector: 'mifosx-savings-account-assign-staff',
+  templateUrl: './savings-account-assign-staff.component.html',
+  styleUrls: ['./savings-account-assign-staff.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class SavingsAccountAssignStaffComponent implements OnInit {
+  private formBuilder = inject(FormBuilder);
+  private savingsService = inject(SavingsService);
+  private dateUtils = inject(Dates);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private settingsService = inject(SettingsService);
+  private destroyRef = inject(DestroyRef);
+
+  /** Minimum date allowed. */
+  minDate = new Date(2000, 0, 1);
+  /** Maximum date allowed. */
+  maxDate = new Date();
+  /** Savings Account Assign Staff form. */
+  savingsAssignStaffForm: FormGroup;
+  /** Savings Account Id */
+  accountId: any;
+  /** Field Officer Data */
+  fieldOfficerData: any;
+  /** Savings Account Data */
+  savingsAccountData: any;
+
+  /**
+   * @param {FormBuilder} formBuilder Form Builder
+   * @param {SavingsService} savingsService Savings Service
+   * @param {Dates} dateUtils Date Utils
+   * @param {ActivatedRoute} route Activated Route
+   * @param {Router} router Router
+   * @param {SettingsService} settingsService Setting service
+   */
+  constructor() {
+    this.accountId = this.route.snapshot.params['savingAccountId'];
+    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data: { savingsAccountActionData: any }) => {
+      this.savingsAccountData = data.savingsAccountActionData;
+    });
+  }
+
+  /**
+   * Creates the savings account assign staff form.
+   */
+  ngOnInit() {
+    this.maxDate = this.settingsService.businessDate;
+    this.fieldOfficerData = this.savingsAccountData.fieldOfficerOptions;
+    this.createSavingsAssignStaffForm();
+  }
+
+  /**
+   * Creates the savings account assign staff form.
+   */
+  createSavingsAssignStaffForm() {
+    this.savingsAssignStaffForm = this.formBuilder.group({
+      toSavingsOfficerId: [
+        '',
+        Validators.required
+      ],
+      assignmentDate: [
+        '',
+        Validators.required
+      ]
+    });
+  }
+
+  /**
+   * Submits the form and assigns staff the saving account,
+   * if successful redirects to the saving account.
+   */
+  submit() {
+    const locale = this.settingsService.language.code;
+    const dateFormat = this.settingsService.dateFormat;
+    const formValue = this.savingsAssignStaffForm.value;
+    const assignmentDate =
+      formValue.assignmentDate instanceof Date
+        ? this.dateUtils.formatDate(formValue.assignmentDate, dateFormat)
+        : formValue.assignmentDate;
+    const data = {
+      toSavingsOfficerId: formValue.toSavingsOfficerId,
+      assignmentDate,
+      dateFormat,
+      locale
+    };
+    this.savingsService.executeSavingsAccountCommand(this.accountId, 'assignSavingsOfficer', data).subscribe(() => {
+      this.router.navigate(['../../transactions'], { relativeTo: this.route });
+    });
+  }
+}

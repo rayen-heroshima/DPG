@@ -1,0 +1,82 @@
+name: build-run
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events for specific branches
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    name: Run Lint and Build
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24.16.0'
+
+      - name: Remove node_modules
+        run: rm -rf node_modules
+
+      - name: Run CI
+        run: npm ci
+
+      - name: Fallback – Clean install with regenerated lockfile
+        if: failure()
+        run: |
+          echo "npm ci failed — regenerating lockfile and retrying"
+          rm -rf node_modules package-lock.json
+          npm install
+
+      - name: Run eslint
+        run: npx eslint .
+
+      - name: Run stylelint
+        run: npx stylelint "src/**/*.scss"
+
+      - name: Run prettier
+        run: npx prettier . --check
+
+      - name: Run HTMLHint
+        run: npx htmlhint "src" --config .htmlhintrc
+
+      - name: Verify git repository
+        run: |
+          git fsck --full || true
+          git gc --aggressive || true
+
+      - name: Check file headers
+        run: |
+          echo "Checking for MPL-2.0 license headers in changed files..."
+
+          # Get list of changed files (comparing with base branch)
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+          fi
+
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only --diff-filter=ACMRT $BASE_SHA HEAD | grep -E '\.(ts|js|html|css|scss)$' | grep -v -E '\.(spec\.ts|spec\.js|d\.ts)$' | grep -v -E '(environment\.ts|environment\.prod\.ts|polyfills\.ts|node_modules)' || true)
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "✅ No relevant files changed"
+            exit 0
+          fi
+
+          echo "📋 Checking $(echo "$CHANGED_FILES" | wc -l) changed file(s)..."
+          echo "$CHANGED_FILES" | xargs node scripts/check-file-headers.js
+
+      - name: Run production build
+        run: npm run build:prod

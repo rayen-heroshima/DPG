@@ -1,0 +1,101 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+@if (loans && loans.length > 0) {
+  <div class="tab-container mat-typography">
+    <div class="tasks-header">
+      <mat-form-field class="tasks-search-field">
+        <input
+          #filterInput
+          matInput
+          placeholder="{{ 'labels.text.Filter by name' | translate }}"
+          (keyup)="applyFilter(filterInput.value)"
+        />
+      </mat-form-field>
+      <button
+        mat-raised-button
+        *mifosxHasPermission="['APPROVE_LOAN', 'APPROVE_LOAN_CHECKER']"
+        (click)="disburseLoan()"
+        class="tasks-action-btn mat-success"
+      >
+        <fa-icon icon="check" class="m-r-10"></fa-icon>{{ 'labels.menus.Disburse' | translate }}
+      </button>
+    </div>
+    <table mat-table [dataSource]="dataSource">
+      <ng-container matColumnDef="select">
+        <th mat-header-cell *matHeaderCellDef>
+          <mat-checkbox
+            (change)="$event ? masterToggle() : null"
+            [checked]="selection.hasValue() && isAllSelected()"
+            [indeterminate]="selection.hasValue() && !isAllSelected()"
+            [aria-label]="checkboxLabel()"
+          >
+          </mat-checkbox>
+        </th>
+        <td mat-cell *matCellDef="let row">
+          <mat-checkbox
+            (click)="$event.stopPropagation()"
+            (change)="$event ? selection.toggle(row) : null"
+            [checked]="selection.isSelected(row)"
+            [aria-label]="checkboxLabel(row)"
+          >
+          </mat-checkbox>
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="client">
+        <th mat-header-cell *matHeaderCellDef>{{ 'labels.inputs.Client Name' | translate }}</th>
+        <td
+          mat-cell
+          *matCellDef="let loan"
+          class="view-details"
+          [routerLink]="['../../clients', loan.clientId, 'general']"
+        >
+          {{ loan.clientName }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="loanAccountNumber">
+        <th mat-header-cell *matHeaderCellDef>{{ 'labels.inputs.Loan Account' | translate }}#</th>
+        <td
+          mat-cell
+          *matCellDef="let loan"
+          class="view-details"
+          [routerLink]="['../../clients', loan.clientId, 'loans-accounts', loan.id, 'general']"
+        >
+          {{ loan.accountNo }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="loanProduct">
+        <th mat-header-cell *matHeaderCellDef>{{ 'labels.inputs.Loan Product' | translate }}</th>
+        <td
+          mat-cell
+          *matCellDef="let loan"
+          class="view-details"
+          [routerLink]="['../../clients', loan.clientId, 'loans-accounts', loan.id, 'general']"
+        >
+          {{ loan.loanProductName }}
+        </td>
+      </ng-container>
+      <ng-container matColumnDef="principal">
+        <th mat-header-cell *matHeaderCellDef>{{ 'labels.inputs.Principal' | translate }}</th>
+        <td mat-cell *matCellDef="let loan">{{ loan.principal | formatNumber }}</td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns" (click)="selection.toggle(row)"></tr>
+    </table>
+    <mat-paginator [pageSize]="10" [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons></mat-paginator>
+  </div>
+}
+
+@if (loans.length === 0) {
+  <div class="alert">
+    <div class="message">
+      <i class="fa fa-exclamation-circle alert-check"></i>
+      {{ 'labels.text.No pending loan available for disbursal' | translate }}
+    </div>
+  </div>
+}

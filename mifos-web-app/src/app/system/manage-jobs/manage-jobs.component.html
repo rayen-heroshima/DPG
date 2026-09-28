@@ -1,0 +1,23 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<mat-card class="container-card">
+  <mat-card-content>
+    <mat-tab-group #tabGroup mat-align-tabs="center" (selectedTabChange)="onJobTabChange($event)">
+      <mat-tab label="{{ title('Scheduler Jobs') }}">
+        <mifosx-manage-scheduler-jobs></mifosx-manage-scheduler-jobs>
+      </mat-tab>
+      <mat-tab label="{{ title('Workflow Jobs') }}">
+        <mifosx-workflow-jobs></mifosx-workflow-jobs>
+      </mat-tab>
+      <mat-tab label="{{ title('COB') }}">
+        <mifosx-cob-workflow [isCatchUpRunning]="isCatchUpRunning"></mifosx-cob-workflow>
+      </mat-tab>
+    </mat-tab-group>
+  </mat-card-content>
+</mat-card>

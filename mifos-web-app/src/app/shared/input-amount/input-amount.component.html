@@ -1,0 +1,115 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+@if (isRequired) {
+  <mat-form-field appearance="fill" class="flex-100 input-container" floatLabel="always">
+    <mat-label>{{ 'labels.inputs.' + inputLabel | translate }}</mat-label>
+    @if (currency) {
+      <div class="input-group">
+        <span>{{ currency.code }}</span>
+        <input
+          mifosxFormatAmount="{{ currency.code }}:{{ currency.displaySymbol }}:1.2-10"
+          class="right-input"
+          [formControl]="inputFormControl"
+          (keypress)="numberOnly($event)"
+          required
+          matInput
+          mifosxPositiveNumber
+          (blur)="displayHint = false"
+          (focus)="displayHint = true"
+        />
+      </div>
+    } @else {
+      <div class="input-group">
+        <input
+          [formControl]="inputFormControl"
+          (keypress)="numberOnly($event)"
+          required
+          matInput
+          mifosxPositiveNumber
+          (blur)="displayHint = false"
+          (focus)="displayHint = true"
+        />
+      </div>
+    }
+    @if (inputFormControl.hasError('required')) {
+      <mat-error>
+        {{ 'labels.inputs.' + inputLabel | translate }} {{ 'labels.commons.is' | translate }}
+        <strong>{{ 'labels.commons.required' | translate }}</strong>
+      </mat-error>
+    }
+    @if (displayHint && currency) {
+      <mat-hint class="right-hint">{{
+        inputFormControl.value | currency: currency.code : currency.displaySymbol : '1.2-10'
+      }}</mat-hint>
+    }
+    @if (minVal && inputFormControl.hasError('min')) {
+      <mat-error>
+        {{ 'labels.inputs.Amount' | translate }} {{ 'labels.commons.Must be at least' | translate }} {{ minVal }}
+      </mat-error>
+    }
+    @if (maxVal && inputFormControl.hasError('max')) {
+      <mat-error>
+        {{ 'labels.inputs.Amount' | translate }} {{ 'labels.commons.Must be less or equal to' | translate }}
+        {{ maxVal }}
+      </mat-error>
+    }
+    @if (inputFormControl.hasError('highAmountValue')) {
+      <mat-error>
+        {{ 'labels.inputs.Amount' | translate }} {{ 'labels.commons.Invalid amount format' | translate }}
+      </mat-error>
+    }
+  </mat-form-field>
+}
+@if (!isRequired) {
+  <mat-form-field appearance="fill" class="flex-100 input-container" floatLabel="always">
+    <mat-label>{{ 'labels.inputs.' + inputLabel | translate }}</mat-label>
+    @if (currency) {
+      <div class="input-group">
+        <span>{{ currency.code }}</span>
+        <input
+          mifosxFormatAmount="{{ currency.code }}:{{ currency.displaySymbol }}:1.2-10"
+          class="right-input"
+          [formControl]="inputFormControl"
+          (keypress)="numberOnly($event)"
+          matInput
+          mifosxPositiveNumber
+          (blur)="displayHint = false"
+          (focus)="displayHint = true"
+        />
+      </div>
+    } @else {
+      <div class="input-group">
+        <input
+          [formControl]="inputFormControl"
+          (keypress)="numberOnly($event)"
+          matInput
+          mifosxPositiveNumber
+          (blur)="displayHint = false"
+          (focus)="displayHint = true"
+        />
+      </div>
+    }
+    @if (displayHint && currency) {
+      <mat-hint class="right-hint">{{
+        inputFormControl.value | currency: currency.code : currency.displaySymbol : '1.2-10'
+      }}</mat-hint>
+    }
+    @if (minVal && inputFormControl.hasError('min')) {
+      <mat-error>
+        {{ 'labels.inputs.Amount' | translate }} {{ 'labels.commons.Must be at least' | translate }} {{ minVal }}
+      </mat-error>
+    }
+    @if (maxVal && inputFormControl.hasError('max')) {
+      <mat-error>
+        {{ 'labels.inputs.Amount' | translate }} {{ 'labels.commons.Must be less or equal to' | translate }}
+        {{ maxVal }}
+      </mat-error>
+    }
+  </mat-form-field>
+}

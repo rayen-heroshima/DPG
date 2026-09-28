@@ -1,0 +1,47 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+@media (width >= 992px) {
+  .is-active-wrapper {
+    position: relative;
+
+    .is-active {
+      padding: 0 0 17.5px;
+      position: absolute;
+      bottom: 0;
+      right: 0;
+    }
+  }
+}
+
+table {
+  width: 100%;
+}
+
+.AddEventButton {
+  margin-bottom: 10px;
+}
+
+.error-message {
+  color: red;
+  font-weight: bold;
+  margin-top: 10px;
+  padding: 5px;
+  background-color: #ffe6e6;
+  border: 1px solid red;
+  border-radius: 5px;
+}
+
+.error-snackbar {
+  background-color: #f44336;
+  color: white;
+}
+
+.error-snackbar .mat-simple-snackbar-action {
+  color: white;
+}

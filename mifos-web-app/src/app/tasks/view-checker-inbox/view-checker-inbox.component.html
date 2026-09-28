@@ -1,0 +1,122 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="layout-row align-end gap-1percent layout-lt-md-column container m-b-20">
+  <button
+    *mifosxHasPermission="checkerPermission()"
+    mat-raised-button
+    class="mat-success"
+    (click)="approveChecker()"
+    [disabled]="processing"
+  >
+    <fa-icon icon="check" class="m-r-10"></fa-icon>{{ 'labels.buttons.Approve' | translate }}
+  </button>
+  <button
+    *mifosxHasPermission="checkerPermission()"
+    mat-raised-button
+    color="warn"
+    (click)="deleteChecker()"
+    [disabled]="processing"
+  >
+    <fa-icon icon="trash" class="m-r-10"></fa-icon>{{ 'labels.buttons.Delete' | translate }}
+  </button>
+  <button
+    *mifosxHasPermission="checkerPermission()"
+    mat-raised-button
+    class="mat-reject"
+    (click)="rejectChecker()"
+    [disabled]="processing"
+  >
+    <fa-icon icon="times" class="m-r-10"></fa-icon>{{ 'labels.buttons.Reject' | translate }}
+  </button>
+</div>
+
+<div class="container">
+  <mat-card>
+    <mat-card-content>
+      <div class="layout-row-wrap responsive-column">
+        <h2 class="mat-h2 flex-fill">{{ 'labels.heading.View Checker Inbox' | translate }}</h2>
+
+        <mat-divider [inset]="true"></mat-divider>
+
+        <h3 class="mat-h3 flex-fill">{{ 'labels.heading.Details' | translate }}</h3>
+
+        <mat-divider [inset]="true"></mat-divider>
+
+        <div class="flex-fill">
+          <span class="flex-40">{{ 'labels.inputs.ID' | translate }}:</span>
+          <span class="flex-60">{{ checkerInboxDetail.id }}</span>
+        </div>
+
+        <div class="flex-fill">
+          <span class="flex-40">{{ 'labels.inputs.Status' | translate }}:</span>
+          <span class="flex-60">{{ checkerInboxDetail.processingResult }}</span>
+        </div>
+
+        <div class="flex-fill">
+          <span class="flex-40">{{ 'labels.inputs.User' | translate }}:</span>
+          <span class="flex-60">{{ checkerInboxDetail.maker }}</span>
+        </div>
+
+        <div class="flex-fill">
+          <span class="flex-40">{{ 'labels.inputs.Action' | translate }}:</span>
+          <span class="flex-60">{{ checkerInboxDetail.actionName }}</span>
+        </div>
+
+        <div class="flex-fill">
+          <span class="flex-40">{{ 'labels.inputs.Entity' | translate }}:</span>
+          <span class="flex-60">{{ checkerInboxDetail.entityName }}</span>
+        </div>
+
+        @if (checkerInboxDetail.resourceId) {
+          <div class="flex-fill">
+            <span class="flex-40">{{ 'labels.inputs.Resource ID' | translate }}:</span>
+            <span class="flex-60">{{ checkerInboxDetail.resourceId }}</span>
+          </div>
+        }
+
+        <div class="flex-fill">
+          <span class="flex-40">{{ 'labels.inputs.Date' | translate }}:</span>
+          <span class="flex-60">{{ checkerInboxDetail.madeOnDate | dateFormat }}</span>
+        </div>
+
+        @if (checkerInboxDetail.officeName) {
+          <div class="flex-fill">
+            <span class="flex-40">{{ 'labels.inputs.Office' | translate }}:</span>
+            <span class="flex-60">{{ checkerInboxDetail.officeName }}</span>
+          </div>
+        }
+
+        @if (checkerInboxDetail.savingsAccountNo) {
+          <div class="flex-fill">
+            <span class="flex-40">{{ 'labels.inputs.Savings Account Number' | translate }}:</span>
+            <span class="flex-60">{{ checkerInboxDetail.savingsAccountNo }}</span>
+          </div>
+        }
+
+        @if (checkerInboxDetail.groupLevelName) {
+          <div class="flex-fill">
+            <span class="flex-40"> {{ checkerInboxDetail.groupLevelName }}</span>
+            <span class="flex-60">{{ checkerInboxDetail.groupName }}</span>
+          </div>
+        }
+
+        @if (displayJSONData) {
+          <h3 class="mat-h3 flex-fill">{{ 'labels.heading.Command' | translate }}</h3>
+          <mat-divider [inset]="true"></mat-divider>
+          @for (json of jsondata | keyvalue; track json) {
+            <div class="flex-fill">
+              <span class="flex-40">{{ json.key }}:</span>
+              <span class="flex-60">{{ json.value }}</span>
+            </div>
+          }
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

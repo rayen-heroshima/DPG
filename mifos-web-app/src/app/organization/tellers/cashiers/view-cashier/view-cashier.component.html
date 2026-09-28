@@ -1,0 +1,84 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="layout-row align-end gap-2px responsive-column container m-b-20">
+  <button mat-raised-button color="primary" [routerLink]="['edit']" *mifosxHasPermission="'UPDATE_CASHIER'">
+    <fa-icon icon="edit" class="m-r-10"></fa-icon>
+    {{ 'labels.buttons.Edit' | translate }}
+  </button>
+  <button mat-raised-button color="warn" (click)="deleteCashier()" *mifosxHasPermission="'DELETECASHIER_TELLER'">
+    <fa-icon icon="trash" class="m-r-10"></fa-icon>
+    {{ 'labels.buttons.Delete' | translate }}
+  </button>
+</div>
+
+<div class="container">
+  <mat-card>
+    <mat-card-content>
+      <div class="layout-row-wrap">
+        <div class="flex-50 header">
+          {{ 'labels.inputs.Name' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ cashierData.staffName }}
+        </div>
+
+        <div class="flex-50 header">
+          {{ 'labels.inputs.Teller' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ cashierData.tellerName }}
+        </div>
+
+        @if (cashierData.description !== '') {
+          <div class="flex-50 header">
+            {{ 'labels.inputs.Description' | translate }}
+          </div>
+        }
+
+        @if (cashierData.description !== '') {
+          <div class="flex-50">
+            {{ cashierData.description }}
+          </div>
+        }
+
+        <div class="flex-50 header">
+          {{ 'labels.inputs.Start Date' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ cashierData.startDate | dateFormat }}
+        </div>
+
+        <div class="flex-50 header">
+          {{ 'labels.inputs.End Date' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ cashierData.endDate | dateFormat }}
+        </div>
+
+        <div class="flex-50 header">
+          {{ 'labels.inputs.Full Day/Time' | translate }}
+        </div>
+
+        <div class="flex-50">
+          {{ cashierData.isFullDay }}
+        </div>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions class="layout-row align-center gap-5px responsive-column">
+      <button type="button" color="primary" mat-raised-button [routerLink]="['..']">
+        {{ 'labels.buttons.Back' | translate }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>

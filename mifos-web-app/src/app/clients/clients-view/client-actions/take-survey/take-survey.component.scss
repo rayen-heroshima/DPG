@@ -1,0 +1,67 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+.surveyOption {
+  border: 1px solid #cbcbcb;
+  padding: 5px;
+}
+
+.display-questions {
+  margin-top: 20px;
+}
+
+.question {
+  padding: 10px 0;
+}
+
+.wrap-mat-radio-label {
+  white-space: normal;
+}
+
+.question-text {
+  font-weight: bold;
+}
+
+.survey-select {
+  height: 40px;
+  margin-bottom: 20px;
+}
+
+.name-label {
+  width: 25%;
+}
+
+.surveyCont {
+  padding: 5%;
+}
+
+.button-cancel {
+  margin-left: 35%;
+}
+
+.button-submit {
+  margin-left: 2%;
+}
+
+.radio-button {
+  margin-bottom: 5px;
+  align-items: normal;
+  white-space: normal;
+}
+
+.radio-group-spacing {
+  display: flex;
+  gap: 2rem;
+  flex-direction: row;
+}
+
+@media (width <= 768px) {
+  .radio-group-spacing {
+    flex-direction: column;
+  }
+}

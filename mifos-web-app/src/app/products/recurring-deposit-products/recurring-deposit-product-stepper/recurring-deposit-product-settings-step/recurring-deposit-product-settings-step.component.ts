@@ -1,0 +1,164 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { ChangeDetectionStrategy, Component, OnInit, Input, inject } from '@angular/core';
+import {
+  UntypedFormGroup,
+  UntypedFormBuilder,
+  UntypedFormControl,
+  Validators,
+  ReactiveFormsModule
+} from '@angular/forms';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MatTooltip } from '@angular/material/tooltip';
+import { MatDivider } from '@angular/material/divider';
+import { MatStepperPrevious, MatStepperNext } from '@angular/material/stepper';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+@Component({
+  selector: 'mifosx-recurring-deposit-product-settings-step',
+  templateUrl: './recurring-deposit-product-settings-step.component.html',
+  styleUrls: ['./recurring-deposit-product-settings-step.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatCheckbox,
+    MatTooltip,
+    MatDivider,
+    MatStepperPrevious,
+    FaIconComponent,
+    MatStepperNext
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class RecurringDepositProductSettingsStepComponent implements OnInit {
+  private formBuilder = inject(UntypedFormBuilder);
+
+  @Input() recurringDepositProductsTemplate: any;
+
+  recurringDepositProductSettingsForm: UntypedFormGroup;
+
+  lockinPeriodFrequencyTypeData: any;
+  periodFrequencyTypeData: any;
+  preClosurePenalInterestOnTypeData: any;
+  taxGroupData: any;
+
+  constructor() {
+    this.createrecurringDepositProductSettingsForm();
+    this.setConditionalControls();
+  }
+
+  ngOnInit() {
+    this.lockinPeriodFrequencyTypeData = this.recurringDepositProductsTemplate.lockinPeriodFrequencyTypeOptions;
+    this.periodFrequencyTypeData = this.recurringDepositProductsTemplate.periodFrequencyTypeOptions.slice(0, -1);
+    this.preClosurePenalInterestOnTypeData = this.recurringDepositProductsTemplate.preClosurePenalInterestOnTypeOptions;
+    this.taxGroupData = this.recurringDepositProductsTemplate.taxGroupOptions;
+
+    if (!(this.recurringDepositProductsTemplate === undefined) && this.recurringDepositProductsTemplate.id) {
+      this.recurringDepositProductSettingsForm.patchValue({
+        isMandatoryDeposit: this.recurringDepositProductsTemplate.isMandatoryDeposit,
+        adjustAdvanceTowardsFuturePayments: this.recurringDepositProductsTemplate.adjustAdvanceTowardsFuturePayments,
+        allowWithdrawal: this.recurringDepositProductsTemplate.allowWithdrawal,
+        lockinPeriodFrequency: this.recurringDepositProductsTemplate.lockinPeriodFrequency,
+        lockinPeriodFrequencyType: this.recurringDepositProductsTemplate.lockinPeriodFrequencyType
+          ? this.recurringDepositProductsTemplate.lockinPeriodFrequencyType.id
+          : '',
+        minDepositTerm: this.recurringDepositProductsTemplate.minDepositTerm,
+        minDepositTermTypeId: this.recurringDepositProductsTemplate.minDepositTermType
+          ? this.recurringDepositProductsTemplate.minDepositTermType.id
+          : '',
+        inMultiplesOfDepositTerm: this.recurringDepositProductsTemplate.inMultiplesOfDepositTerm,
+        inMultiplesOfDepositTermTypeId: this.recurringDepositProductsTemplate.inMultiplesOfDepositTermType
+          ? this.recurringDepositProductsTemplate.inMultiplesOfDepositTerm.id
+          : '',
+        maxDepositTerm: this.recurringDepositProductsTemplate.maxDepositTerm,
+        maxDepositTermTypeId: this.recurringDepositProductsTemplate.maxDepositTermType
+          ? this.recurringDepositProductsTemplate.minDepositTermType.id
+          : '',
+        preClosurePenalApplicable: this.recurringDepositProductsTemplate.preClosurePenalApplicable,
+        preClosurePenalInterest: this.recurringDepositProductsTemplate.preClosurePenalInterest,
+        preClosurePenalInterestOnTypeId: this.recurringDepositProductsTemplate.preClosurePenalInterestOnType
+          ? this.recurringDepositProductsTemplate.preClosurePenalInterestOnType.id
+          : '',
+        withHoldTax: this.recurringDepositProductsTemplate.withHoldTax
+      });
+    }
+
+    if (this.recurringDepositProductsTemplate.withHoldTax) {
+      this.recurringDepositProductSettingsForm.patchValue({
+        taxGroupId: this.recurringDepositProductsTemplate.taxGroup
+          ? this.recurringDepositProductsTemplate.taxGroup.id
+          : ''
+      });
+    }
+  }
+
+  createrecurringDepositProductSettingsForm() {
+    this.recurringDepositProductSettingsForm = this.formBuilder.group({
+      isMandatoryDeposit: [false],
+      adjustAdvanceTowardsFuturePayments: [false],
+      allowWithdrawal: [false],
+      lockinPeriodFrequency: [
+        '',
+        Validators.min(0)
+      ],
+      lockinPeriodFrequencyType: [''],
+      minDepositTerm: [
+        '',
+        [
+          Validators.required,
+          Validators.min(0)
+        ]
+      ],
+      minDepositTermTypeId: [
+        '',
+        Validators.required
+      ],
+      inMultiplesOfDepositTerm: [
+        '',
+        Validators.min(0)
+      ],
+      inMultiplesOfDepositTermTypeId: [''],
+      maxDepositTerm: [
+        '',
+        Validators.min(0)
+      ],
+      maxDepositTermTypeId: [''],
+      preClosurePenalApplicable: [false],
+      preClosurePenalInterest: [
+        '',
+        Validators.min(0)
+      ],
+      preClosurePenalInterestOnTypeId: [''],
+      withHoldTax: [false]
+    });
+  }
+
+  setConditionalControls() {
+    this.recurringDepositProductSettingsForm.get('withHoldTax').valueChanges.subscribe((withHoldTax: any) => {
+      if (withHoldTax) {
+        this.recurringDepositProductSettingsForm.addControl(
+          'taxGroupId',
+          new UntypedFormControl('', Validators.required)
+        );
+      } else {
+        this.recurringDepositProductSettingsForm.removeControl('taxGroupId');
+      }
+    });
+  }
+
+  get recurringDepositProductSettings() {
+    const recurringDepositProductSettings = this.recurringDepositProductSettingsForm.value;
+    for (const key in recurringDepositProductSettings) {
+      if (recurringDepositProductSettings[key] === '') {
+        delete recurringDepositProductSettings[key];
+      }
+    }
+    return recurringDepositProductSettings;
+  }
+}

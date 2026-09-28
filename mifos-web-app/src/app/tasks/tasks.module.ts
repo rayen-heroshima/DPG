@@ -1,0 +1,53 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+import { NgModule } from '@angular/core';
+
+/** Custom Modules */
+import { SharedModule } from 'app/shared/shared.module';
+import { PipesModule } from '../pipes/pipes.module';
+import { TasksRoutingModule } from './tasks-routing.module';
+import { DirectivesModule } from '../directives/directives.module';
+
+/** Custom Components */
+import { CheckerInboxAndTasksComponent } from './checker-inbox-and-tasks/checker-inbox-and-tasks.component';
+import { CheckerInboxComponent } from './checker-inbox-and-tasks-tabs/checker-inbox/checker-inbox.component';
+import { ClientApprovalComponent } from './checker-inbox-and-tasks-tabs/client-approval/client-approval.component';
+import { LoanApprovalComponent } from './checker-inbox-and-tasks-tabs/loan-approval/loan-approval.component';
+import { CreditApplicationsComponent } from './checker-inbox-and-tasks-tabs/credit-applications/credit-applications.component';
+import { EnrollmentStatusComponent } from './checker-inbox-and-tasks-tabs/enrollment-status/enrollment-status.component';
+import { PendingProspectsComponent } from './checker-inbox-and-tasks-tabs/pending-prospects/pending-prospects.component';
+import { LoanDisbursalComponent } from './checker-inbox-and-tasks-tabs/loan-disbursal/loan-disbursal.component';
+import { RescheduleLoanComponent } from './checker-inbox-and-tasks-tabs/reschedule-loan/reschedule-loan.component';
+import { CouncilApprovalComponent } from './checker-inbox-and-tasks-tabs/council-approval/council-approval.component';
+import { ViewCheckerInboxComponent } from './view-checker-inbox/view-checker-inbox.component';
+
+/**
+ * Tasks Module
+ */
+@NgModule({
+  imports: [
+    SharedModule,
+    TasksRoutingModule,
+    DirectivesModule,
+    PipesModule,
+    CheckerInboxAndTasksComponent,
+    CheckerInboxComponent,
+    ClientApprovalComponent,
+    LoanApprovalComponent,
+    CreditApplicationsComponent,
+    EnrollmentStatusComponent,
+    PendingProspectsComponent,
+    LoanDisbursalComponent,
+    RescheduleLoanComponent,
+    CouncilApprovalComponent,
+    ViewCheckerInboxComponent
+  ],
+  providers: []
+})
+export class TasksModule {}

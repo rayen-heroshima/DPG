@@ -1,0 +1,81 @@
+<!--
+  Copyright since 2025 Mifos Initiative
+
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+-->
+
+<div class="container">
+  <mat-card>
+    <form [formGroup]="officeForm" (ngSubmit)="submit()">
+      <mat-card-content>
+        <div class="layout-column">
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.Office' | translate }}</mat-label>
+            <input matInput required formControlName="name" />
+            @if (officeForm.controls.name.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Office' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          @if (officeForm.contains('parentId')) {
+            <mat-form-field>
+              <mat-label>{{ 'labels.inputs.Parent Office' | translate }}</mat-label>
+              <mat-select required formControlName="parentId">
+                @for (office of officeData.allowedParents; track office) {
+                  <mat-option [value]="office.id">
+                    {{ office.name }}
+                  </mat-option>
+                }
+              </mat-select>
+              @if (officeForm.controls.parentId.hasError('required')) {
+                <mat-error>
+                  {{ 'labels.inputs.Parent Office' | translate }} {{ 'labels.commons.is' | translate }}
+                  <strong>{{ 'labels.commons.required' | translate }}</strong>
+                </mat-error>
+              }
+            </mat-form-field>
+          }
+
+          <mat-form-field (click)="openingDatePicker.open()">
+            <mat-label>{{ 'labels.inputs.Opened On' | translate }}</mat-label>
+            <input
+              matInput
+              [min]="minDate"
+              [max]="maxDate"
+              [matDatepicker]="openingDatePicker"
+              required
+              formControlName="openingDate"
+            />
+            <mat-datepicker-toggle matSuffix [for]="openingDatePicker"></mat-datepicker-toggle>
+            <mat-datepicker #openingDatePicker></mat-datepicker>
+            @if (officeForm.controls.openingDate.hasError('required')) {
+              <mat-error>
+                {{ 'labels.inputs.Opening Date' | translate }} {{ 'labels.commons.is' | translate }}
+                <strong>{{ 'labels.commons.required' | translate }}</strong>
+              </mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field>
+            <mat-label>{{ 'labels.inputs.External ID' | translate }}</mat-label>
+            <input matInput formControlName="externalId" />
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+
+      <mat-card-actions class="layout-row align-center gap-5px responsive-column">
+        <button type="button" mat-raised-button [routerLink]="['../general']">
+          {{ 'labels.buttons.Cancel' | translate }}
+        </button>
+        <button mat-raised-button color="primary" [disabled]="!officeForm.valid" *mifosxHasPermission="'UPDATE_OFFICE'">
+          {{ 'labels.buttons.Submit' | translate }}
+        </button>
+      </mat-card-actions>
+    </form>
+  </mat-card>
+</div>

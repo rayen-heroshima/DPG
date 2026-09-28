@@ -1,0 +1,148 @@
+/**
+ * Copyright since 2025 Mifos Initiative
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/** Angular Imports. */
+import { ChangeDetectionStrategy, Component, OnInit, ViewChild, inject } from '@angular/core';
+import { MatPaginator } from '@angular/material/paginator';
+import {
+  MatTableDataSource,
+  MatTable,
+  MatColumnDef,
+  MatHeaderCellDef,
+  MatHeaderCell,
+  MatCellDef,
+  MatCell,
+  MatHeaderRowDef,
+  MatHeaderRow,
+  MatRowDef,
+  MatRow
+} from '@angular/material/table';
+import { MatSort, MatSortHeader } from '@angular/material/sort';
+import { MatDialog } from '@angular/material/dialog';
+import { ErrorDialogComponent } from 'app/shared/error-dialog/error-dialog.component';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FaIconComponent } from '@fortawesome/angular-fontawesome';
+import { MatTooltip } from '@angular/material/tooltip';
+import { MatIconButton, MatButton } from '@angular/material/button';
+import { DatetimeFormatPipe } from '../../../../pipes/datetime-format.pipe';
+import { STANDALONE_SHARED_IMPORTS } from 'app/standalone-shared.module';
+
+@Component({
+  selector: 'mifosx-view-history-scheduler-job',
+  templateUrl: './view-history-scheduler-job.component.html',
+  styleUrls: ['./view-history-scheduler-job.component.scss'],
+  imports: [
+    ...STANDALONE_SHARED_IMPORTS,
+    MatTable,
+    MatSort,
+    MatColumnDef,
+    MatHeaderCellDef,
+    MatHeaderCell,
+    MatSortHeader,
+    MatCellDef,
+    MatCell,
+    FaIconComponent,
+    MatTooltip,
+    MatIconButton,
+    MatHeaderRowDef,
+    MatHeaderRow,
+    MatRowDef,
+    MatRow,
+    MatPaginator,
+    DatetimeFormatPipe
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ViewHistorySchedulerJobComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private dialog = inject(MatDialog);
+  private router = inject(Router);
+
+  /** Job History data. */
+  jobHistoryData: any;
+  /** Columns to be displayed in Scheduler Job History. */
+  displayedColumns: string[] = [
+    'version',
+    'run_start_time',
+    'run_end_time',
+    'status',
+    'run_type',
+    'error_log'
+  ];
+  /** Data source for Scheduler Job History table. */
+  dataSource: MatTableDataSource<any>;
+
+  /** Paginator for Scheduler Job History table. */
+  @ViewChild(MatPaginator, { static: true }) paginator: MatPaginator;
+  /** Sorter for Scheduler Job History table. */
+  @ViewChild(MatSort, { static: true }) sort: MatSort;
+
+  /**
+   * Retrieves the scheduler Job History data from `resolve`.
+   * @param {ActivatedRoute} route Activated Route.
+   */
+  constructor() {
+    this.route.data.subscribe((data: { jobsSchedulerHistory: any }) => {
+      this.jobHistoryData = data.jobsSchedulerHistory;
+    });
+  }
+
+  /**
+   * Filters data in scheduler Job History table based on passed value.
+   * @param {string} filterValue Value to filter data.
+   */
+  applyFilter(filterValue: string) {
+    const filterObject = [
+      {
+        id: 'version',
+        value: filterValue
+      }
+    ];
+    this.dataSource.filter = JSON.stringify(filterObject);
+  }
+
+  ngOnInit() {
+    this.setJobHistory();
+  }
+
+  /**
+   * Initializes the data source, paginator and sorter for scheduler Job History table.
+   */
+  setJobHistory() {
+    this.dataSource = new MatTableDataSource(this.jobHistoryData.pageItems);
+    this.dataSource.paginator = this.paginator;
+    /** Search By Version */
+    this.dataSource.filterPredicate = (data: any, filtersJson: string) => {
+      const matchFilter: any[] = [];
+      const filters = JSON.parse(filtersJson);
+      filters.forEach((filter: any) => {
+        const val = data[filter.id] === null ? '' : data[filter.id];
+        if (filter.value !== '' && val !== '') {
+          matchFilter.push(parseInt(val.toString(), 10) === parseInt(filter.value, 10));
+        } else if (filter.value === '' || val === '') {
+          matchFilter.push(val.toString().toLowerCase().includes(filter.value.toLowerCase()));
+        }
+      });
+      return matchFilter.every(Boolean);
+    };
+  }
+
+  /**
+   * Open Error Dialog.
+   * @param version version Id.
+   */
+  openError(version: any) {
+    const openErrorLogDialog = this.dialog.open(ErrorDialogComponent, {
+      width: '400px',
+      data: this.jobHistoryData.pageItems.filter((data: any) => data.version === version)[0].jobRunErrorLog
+    });
+    openErrorLogDialog.afterClosed().subscribe((response: any) => {
+      this.router.navigate(['']);
+    });
+  }
+}

@@ -4,7 +4,7 @@ Projects cloned from the [DPG Registry](https://www.digitalpublicgoods.net/regis
 
 | Folder | DPG | Domain | URL | Default login |
 |---|---|---|---|---|
-| `mifos-fineract/` + `mifos-web-app/` | Mifos X (Apache Fineract) | Fintech – core banking | UI: http://localhost:4200 · API: https://localhost:8443/fineract-provider | `mifos` / `password` |
+| `mifos-fineract/` + `mifos-web-app/` | Mifos X (Apache Fineract) | Fintech – core banking | UI: http://localhost:4200 · API: https://localhost:8443/fineract-provider -health https://localhost:8443/fineract-provider/actuator/health| `mifos` / `password` |
 | `openmrs/` | OpenMRS 3 | Healthcare – medical records | http://localhost/openmrs/spa | `admin` / `Admin123` |
 | `dhis2/` | DHIS2 | Healthcare – health information / analytics | http://localhost:8085 | `admin` / `district` |
 | `ckan/` | CKAN | Open data portal | http://localhost:81 (HTTPS also on :8444) | `ckan_admin` / `test1234` |
@@ -61,6 +61,13 @@ cd ckan && docker compose up -d
   Running everything plus AMP at once will exhaust RAM — stop the ones you're not using.
 - **Self-signed HTTPS:** for Mifos, open https://localhost:8443/fineract-provider/actuator/health once
   and accept the certificate warning, otherwise the web UI at :4200 can't log in. Same for CKAN on :8444.
+- **Mifos login fails with "0 Unknown Error" / `ERR_CONNECTION_CLOSED`:** Fineract isn't up. If its log loops on
+  `Waiting for changelog lock....`, a crash left a stale Liquibase lock. Stop the container first, then clear it:
+  `docker stop mifos-x-fineract-1`, then
+  `docker exec mifos-x-db-1 psql -U root -d fineract_default -c "UPDATE databasechangeloglock SET locked=false, lockgranted=NULL, lockedby=NULL;"`,
+  then `docker start mifos-x-fineract-1`. (Clearing the lock while it runs lets the waiting instance grab it; a restart then leaves it stuck again.)
+  The web-app `master` image requires 12-character passwords by default. `MIFOS_MIN_PASSWORD_LENGTH=8` in
+  `docker-compose.dpg.yml` lets `password` pass the login form.
 - **First boot is slow:** OpenMRS takes 10–30 min on first start (loads its concept dictionary) and redirects
   to `/openmrs/initialsetup` meanwhile — don't restart it during that time. DHIS2 imports an ~80 MB demo DB
   on first start (several minutes).

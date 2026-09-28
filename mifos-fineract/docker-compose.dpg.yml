@@ -45,6 +45,8 @@ services:
       - FINERACT_API_VERSION=/v1
       - FINERACT_PLATFORM_TENANT_IDENTIFIER=default
       - MIFOS_DEFAULT_LANGUAGE=en-US
+      # the web-app:master image defaults to a 12-char minimum; the default "password" is 8
+      - MIFOS_MIN_PASSWORD_LENGTH=8
 
 volumes:
   fineract-db:

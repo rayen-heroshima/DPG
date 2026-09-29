@@ -20,7 +20,7 @@ services:
     image: apache/fineract:latest
     restart: unless-stopped
     ports:
-      - "8443:8443"
+      - "8081:8080"
     depends_on:
       db:
         condition: service_healthy
@@ -29,9 +29,9 @@ services:
       - ./config/docker/env/fineract-common.env
       - ./config/docker/env/fineract-postgresql.env
     environment:
-    FINERACT_SERVER_SSL_ENABLED: "false"
-    FINERACT_SERVER_PORT: "8080"
-    JAVA_TOOL_OPTIONS: "-Xmx1G -XX:+UseContainerSupport --add-exports=java.naming/com.sun.jndi.ldap=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.security=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.management/javax.management=ALL-UNNAMED --add-opens=java.naming/javax.naming=ALL-UNNAMED"
+      FINERACT_SERVER_SSL_ENABLED: "false"
+      FINERACT_SERVER_PORT: "8080"
+      JAVA_TOOL_OPTIONS: "-Xmx1G -XX:+UseContainerSupport --add-exports=java.naming/com.sun.jndi.ldap=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.lang.invoke=ALL-UNNAMED --add-opens=java.base/java.io=ALL-UNNAMED --add-opens=java.base/java.security=ALL-UNNAMED --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.management/javax.management=ALL-UNNAMED --add-opens=java.naming/javax.naming=ALL-UNNAMED"
     tmpfs:
       - /tmp:rw,nosuid,size=256m
 
